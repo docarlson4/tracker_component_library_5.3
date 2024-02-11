@@ -1,0 +1,19 @@
+#OSX files
+.DS_Store
+._*
+.AppleDouble
+.LSOverride
+
+#Compiled files
+*.mexw64
+*.mexmaci64
+*.exe
+*.obj
+*.o
+*.lib
+*.a
+*.dll
+
+#temp files
+*.asv
+*.m~
