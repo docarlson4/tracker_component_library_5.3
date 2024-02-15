@@ -180,7 +180,8 @@ for curScan = 1:numSamples
         %Generate the detection from the targets, if any.
         for curTar = 1:numTargets
             if(isDet(curTar))
-                zCur(:,curDet) = Cart2Pol(H*xTrue(:,curScan,curTar))+SR*randn(2,1);
+                zCur(:,curDet) = Cart2Pol(H*xTrue(:,curScan,curTar)) ...
+                    + SR*randn(2,1);
                 curDet = curDet+1;
             end
         end
@@ -200,13 +201,15 @@ for curScan = 1:numSamples
         
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zCur,SR,0,true,[],[],[],xi,w);
+        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zCur,SR,0,true, ...
+            [],[],[],xi,w);
         
         %Take the lower-triangular square root of the covariance matrices.
         measDetCur = zeros(numMeas,1);
         for curMeas = 1:numMeas
             RMeasCart(:,:,curMeas) = chol(RMeasCart(:,:,curMeas),'lower');
-            measDetCur(curMeas) = det(calcPolarConvJacob(zCur(:,curMeas),0,true));
+            measDetCur(curMeas) ...
+                = det(calcPolarConvJacob(zCur(:,curMeas),0,true));
         end
         SRMeasCart{curScan} = RMeasCart;
         zMeasJacobDet{curScan} = measDetCur;
@@ -277,7 +280,8 @@ for curScan = 1:numSamples
         
         %Predict the tracks to the current time.
         for curTar = 1:numTargetsCur
-            [x(:,curTar),S(:,:,curTar)] = sqrtDiscKalPred(x(:,curTar),S(:,:,curTar),F,SQ);
+            [x(:,curTar),S(:,:,curTar)] = sqrtDiscKalPred( ...
+                x(:,curTar),S(:,:,curTar),F,SQ);
         end
         %Update the target existence probabilities with the Markov 
         %switching model.
@@ -285,9 +289,12 @@ for curScan = 1:numSamples
 
         %The inclusion of r takes into account the track existence
         %probabilities.
-        [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCur,SRCur,[],PD,lambda,r,[],measJacobDets);
+        [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCur,SRCur,[], ...
+            PD,lambda,r,[],measJacobDets);
         
-        [xUpdate,PUpdate,rUpdate,probNonTargetMeas] = singleScanUpdateWithExistence(xHyp,PHyp,PD,r,A,algSel1,algSel2,param3);
+        [xUpdate,PUpdate,rUpdate,probNonTargetMeas] ...
+            = singleScanUpdateWithExistence(xHyp,PHyp,PD,r,A, ...
+            algSel1,algSel2,param3);
         
         %Determine which tracks to drop because their existence
         %probabilities are below the termination probability.
