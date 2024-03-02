@@ -48,7 +48,7 @@ pos = [rng_tgt.*sin(alp_tgt), rng_tgt.*cos(alp_tgt)]';
 
 % Velocity of targets
 speed = Vmin + (Vmax-Vmin)*rand(num_tgt,1);
-bet_tgt = alp_tgt + (-pi/4 + pi/3*rand(num_tgt,1)) + pi;
+bet_tgt = alp_tgt + (-pi/4 + pi/2*rand(num_tgt,1)) + pi;
 vel = [speed.*sin(bet_tgt), speed.*cos(bet_tgt)]';
 
 % Target lifetime
