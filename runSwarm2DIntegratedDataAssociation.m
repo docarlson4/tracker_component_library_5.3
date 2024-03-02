@@ -66,12 +66,11 @@
 
 clc
 clearvars
-close all
-
-addpath Utilities\
-Constants
+% close all
 
 startup_tcl
+
+MyConstants
 
 dbstop if error
 
@@ -81,7 +80,27 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
-PD = 0.8;%Detection probability --same for all targets.
+
+% rng("shuffle")
+rng(0)
+
+PD = 0.98;%Detection probability --same for all targets.
+
+% Probability of false target
+PFT = 0.95;
+
+%lambda times the "volume" in the receiver's polar coordinate system needed
+%for the Poisson clutter model
+lambdaV = -log( 1 - PFT );
+
+%The viewing region range. This is important for dealing with the clutter
+%model.
+minRange = 1e3;
+maxRange = 40e3;
+%The angular region is two pi (all around).
+
+% Measurement volume
+mmt_vol = (maxRange-minRange)*2*pi;
 
 %Assumed clutter parameter in terms of false alarms per meter-radian
 %(polar coordinates). False alarms are generated in the measurement
@@ -90,23 +109,13 @@ PD = 0.8;%Detection probability --same for all targets.
 %should note that lambda in the tracker cannot be arbitrarily large lest
 %the tracker eventually ignore all measurements (false alarms become always
 %more likely than true tracks).
-lambda = 2e-6;
+lambda = lambdaV/mmt_vol;
 
 %The AlgSel parameters are inputs to the singleScanUpdate function.
 %Use the GNN-JIPDAF with approximate association probabilities.
 algSel1 = 3;
 algSel2 = 0;
 param3 = [];
-
-%The viewing region range. This is important for dealing with the clutter
-%model.
-minRange = 1e3;
-maxRange = 40e3;
-%The angular region is two pi (all around).
-
-%lambda times the "volume" in the receiver's polar coordinate system needed
-%for the Poisson clutter model
-lambdaV = lambda*(maxRange-minRange)*2*pi;
 
 %The transition probability when predicting forward the target states that
 %the track did not end during the transition. This is a design parameter. 
@@ -121,6 +130,10 @@ PTerminate = 1e-4;
 
 xDim = 4;
 zDim = 2;
+
+% Elliptical gate probability
+PG = 0.995;
+gammaVal = ChiSquareD.invCDF(PG,zDim);
 
 %Potential new tracks are started using one-point differencing. Usually,
 %this means that the velocity value is set to zero and one uses a
@@ -137,33 +150,34 @@ H = [1,0,0,0;
 
 Ts = 12;
 Ns = 100;
-Rmin = 1*km;
-Rmax = 40*km;
+Rmin = minRange;
+Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
-lam = 15;
+lam = 10;
 
-[ZCartTrue, ZPolTrue, Ts, numTargets] = ...
+[ZCartTrue, ZPolTrue, Ts, num_tgt_truth] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
+numSamples = length(ZCartTrue);
+numSamplesTrack = numSamples;
 
 %% Generate Measurements
 disp('Generating measurements.') 
 
 %Assumed standard deviations of the measurement noise components.
 sigmaR = 10;
-sigmaAz = 0.1*(pi/180);
+sigmaAz = 0.1*deg;
 %Square root measurement covariance matrix; assume no correlation.
 SR = diag([sigmaR,sigmaAz]);
 
 %Generate measurements and false alarms for each scan.
 zMeasCart = cell(numSamples,1);
 SRMeasCart = cell(numSamples,1);
-% zMeasPolar = cell(numSamples,1);
 zMeasJacobDet = cell(numSamples,1);
 for curScan = 1:numSamples
     %Determine the number of false alarms to generate.
     numFalse = PoissonD.rand(1,lambdaV);
-
+    numTargets = size(ZCartTrue{curScan},2);
     if(curScan <= numSamplesTrack)
         %Determine which, if any, targets should be detected.
         isDet = rand(numTargets,1) < PD;
@@ -180,8 +194,8 @@ for curScan = 1:numSamples
     if(numMeas>0)
         %Generate the detection from the targets, if any.
         for curTar = 1:numTargets
-            if(isDet(curTar))
-                zCur(:,curDet) = Cart2Pol(H*xTrue(:,curScan,curTar)) ...
+            if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) < maxRange)
+                zCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
                     + SR*randn(2,1);
                 curDet = curDet+1;
             end
@@ -197,9 +211,7 @@ for curScan = 1:numSamples
             zCur(:,curDet) = [r;az];
             curDet = curDet+1;
         end
-    
-        % zMeasPolar{curScan} = zCur;
-        
+            
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
         [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zCur,SR,0,true, ...
@@ -221,14 +233,22 @@ end
 
 %Parameters for the dynamic model. We are using a first-order Gauss-Markov
 %model.
-tau = 20;%20 seconds; the assumed maneuver decorrelation time.
-maxAccel = 9.8*3;%Assume max 3G turn
-%Rule-of-thumb process noise suggestion.
-q = processNoiseSuggest('PolyKal-ROT',maxAccel,T);
-Q = QGaussMarkov(T,xDim,q,tau,1);%Process noise covariance matrix.
+% tau = 20;%20 seconds; the assumed maneuver decorrelation time.
+% maxAccel = 9.8*10;%Assume max 3G turn
+% %Rule-of-thumb process noise suggestion.
+% q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
+% Q = QGaussMarkov(Ts,xDim,q,tau,1);%Process noise covariance matrix.
+% SQ = chol(Q,'lower');
+% 
+% F = FGaussMarkov(Ts,xDim,tau,1);%State transition matrix
+
+maxAccel = 9.8*1;% in g's
+q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
+
+Q = QPolyKal(Ts, xDim, 1, q);%Process noise covariance matrix.
 SQ = chol(Q,'lower');
 
-F = FGaussMarkov(T,xDim,tau,1);%State transition matrix
+F = FPolyKal(Ts, xDim, 1);
 
 %% Track Filter
 %Now for the tracker with integrated track initiation/ termination.
@@ -291,7 +311,7 @@ for curScan = 1:numSamples
         %The inclusion of r takes into account the track existence
         %probabilities.
         [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCur,SRCur,[], ...
-            PD,lambda,r,[],measJacobDets);
+            PD,lambda,r,gammaVal,measJacobDets);
         
         [xUpdate,PUpdate,rUpdate,probNonTargetMeas] ...
             = singleScanUpdateWithExistence(xHyp,PHyp,PD,r,A, ...
@@ -332,7 +352,7 @@ for curScan = 1:numSamples
 end
 
 %% Plots
-displayTracks
+displayTracksSwarm
 
 %% LICENSE:
 %
