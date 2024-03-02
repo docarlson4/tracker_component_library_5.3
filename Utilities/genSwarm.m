@@ -1,4 +1,4 @@
-function [ZCart, ZMeas, Ts, num_tgt] = genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam)
+function [ZCart, ZPol, Ts, num_tgt] = genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam)
 %GENSWARM Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -38,7 +38,7 @@ F = kron([1,Ts;0,1], eye(2));
 
 num_tgt = poissrnd(lam, 1);
 ZCart = cell(Ns,1);
-ZMeas = cell(Ns,1);
+ZPol = cell(Ns,1);
 
 % Polar location of targets in NED
 % rng_tgt = Rmin + (Rmax-Rmin)*rand(num_tgt, 1);
@@ -54,16 +54,16 @@ vel = [speed.*sin(bet_tgt), speed.*cos(bet_tgt)]';
 % Target lifetime
 num_lt = 3 + poissrnd(Ns/3-3,num_tgt);
 xCart = cell(num_tgt, 1);
-xMeas = cell(num_tgt, 1);
+xPol = cell(num_tgt, 1);
 x0 = [pos;vel];
 for kT = 1:num_tgt
     xCart{kT} = x0(:,kT);
-    xMeas{kT} = [
+    xPol{kT} = [
         vecnorm( xCart{kT}(1:2,1) );
         atan2( xCart{kT}(1,1), xCart{kT}(2,1) )];
     for kLT = 2:num_lt(kT)
         xCart{kT}(:,kLT) = F * xCart{kT}(:,kLT-1);
-        xMeas{kT} = [xMeas{kT}, [
+        xPol{kT} = [xPol{kT}, [
             vecnorm( xCart{kT}(1:2,kLT) );
             atan2( xCart{kT}(1,kLT), xCart{kT}(2,kLT) )]];
     end
@@ -79,12 +79,12 @@ for kS = 1:Ns
     for kT = 1:num_tgt
         if num_fd(kT) == kS
             ZCart{kS} = xCart{kT}(:,1);
-            ZMeas{kS} = xMeas{kT}(:,1);
+            ZPol{kS} = xPol{kT}(:,1);
         end
         if (num_fd(kT) < kS) && (kS <= num_fd(kT) + num_lt(kT))
             idx = kS - num_fd(kT);
             ZCart{kS} = [ZCart{kS}, xCart{kT}(:,idx)];
-            ZMeas{kS} = [ZMeas{kS}, xMeas{kT}(:,idx)];
+            ZPol{kS} = [ZPol{kS}, xPol{kT}(:,idx)];
         end
     end
 end
