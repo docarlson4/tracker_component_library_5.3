@@ -68,6 +68,9 @@ clc
 clearvars
 close all
 
+addpath Utilities\
+Constants
+
 startup_tcl
 
 dbstop if error
@@ -131,32 +134,18 @@ H = [1,0,0,0;
    0,1,0,0];%Cartesian measurement matrix
 
 %% Generate Target Truth Data
-if 0
-    %Generate the two true targets. The time between samples is T; the total
-    %number of samples is in numSamples.
-    [xTrue1,T,numSamplesTrack] = genManeuveringTrack();
-    %We will go for 50 extra samples (with no tracks) to make sure that the
-    %trackers terminate the tracks in a timely manner.
-    numSamples = numSamplesTrack+50;
 
-    xTrue2 = xTrue1;
-    xTrue2(1,:) = -xTrue2(1,:)+6.5e3;%x position component.
-    xTrue2(3,:) = -xTrue2(3,:);%Velocity component.
-    xTrue = cat(3,xTrue1,xTrue2);
-    numTargets = 2;
-else
-    Ts = 12;
-    Ns = 100;
-    Rmin = 1*km;
-    Rmax = 40*km;
-    Vmin = 25*mph;
-    Vmax = 600*mph;
-    lam = 15;
+Ts = 12;
+Ns = 100;
+Rmin = 1*km;
+Rmax = 40*km;
+Vmin = 25*mph;
+Vmax = 600*mph;
+lam = 15;
 
-    [ZCartTrue, ZMeasTrue, Ts, numTargets] = ...
-        genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
-    
-end
+[ZCartTrue, ZPolTrue, Ts, numTargets] = ...
+    genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
+
 %% Generate Measurements
 disp('Generating measurements.') 
 
