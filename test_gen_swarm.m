@@ -3,11 +3,11 @@ clear
 close all
 
 cd(fileparts(which(mfilename)))
-addpath Utilities\
+startup_tcl
 
 dbstop if error
 
-Constants
+MyConstants
 
 % Developed in Matlab 9.12.0.2327980 (R2022a) Update 7 on PCWIN64.
 % Doug Carlson (doug.o.carlson@gmail.com), 2024-03-02 13:55

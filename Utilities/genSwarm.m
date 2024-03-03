@@ -36,7 +36,9 @@ end
 %%
 F = kron([1,Ts;0,1], eye(2));
 
-num_tgt = poissrnd(lam, 1);
+pois = PoissonD;
+
+num_tgt = pois.rand(1, lam);
 ZCart = cell(Ns,1);
 ZPol = cell(Ns,1);
 
@@ -52,7 +54,7 @@ bet_tgt = alp_tgt + (-pi/4 + pi/2*rand(num_tgt,1)) + pi;
 vel = [speed.*sin(bet_tgt), speed.*cos(bet_tgt)]';
 
 % Target lifetime
-num_lt = 3 + poissrnd(Ns/3-3,num_tgt);
+num_lt = 3 + pois.rand([num_tgt,1],Ns/3-3);
 xCart = cell(num_tgt, 1);
 xPol = cell(num_tgt, 1);
 x0 = [pos;vel];
