@@ -10,8 +10,8 @@ PDisp = 0.98;
 trackList = AVLTree();
 for curScan = 1:numSamples
     if ~isempty(ZCartTrue{curScan})
-        xTrue1 = ZCartTrue{curScan};
-        scatter(xTrue1(2,:)/km,xTrue1(1,:)/km,'bo','linewidth',1)
+        xTrue = ZCartTrue{curScan};
+        scatter(xTrue(2,:)/km,xTrue(1,:)/km,'bo','linewidth',1)
     end
     
     zCur = zMeasCart{curScan};
