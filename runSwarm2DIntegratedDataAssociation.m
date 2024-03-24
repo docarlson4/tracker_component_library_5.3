@@ -98,9 +98,9 @@ lambdaV = -log( 1 - PFT );
 minRange = 1e3;
 maxRange = 40e3;
 %The angular region is two pi (all around).
-
+mmt_space = [minRange -pi; maxRange, pi];
 % Measurement volume
-mmt_vol = (maxRange-minRange)*2*pi;
+mmt_vol = prod(diff(mmt_space));
 
 %Assumed clutter parameter in terms of false alarms per meter-radian
 %(polar coordinates). False alarms are generated in the measurement
@@ -141,10 +141,9 @@ gammaVal = ChiSquareD.invCDF(PG,zDim);
 %maximum velocity.
 velInitStdDev = 500;%(m/s)
 
-%Cubature points for measurement conversion.
-[xi,w] = fifthOrderCubPoints(zDim);
+%Cartesian measurement matrix
 H = [1,0,0,0;
-   0,1,0,0];%Cartesian measurement matrix
+   0,1,0,0];
 
 %% Generate Target Truth Data
 
@@ -154,12 +153,11 @@ Rmin = minRange;
 Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
-lam = 10;
+lam = 3;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
 numSamples = length(ZCartTrue);
-numSamplesTrack = numSamples;
 
 %% Generate Measurements
 disp('Generating measurements.') 
@@ -170,64 +168,9 @@ sigmaAz = 0.1*deg;
 %Square root measurement covariance matrix; assume no correlation.
 SR = diag([sigmaR,sigmaAz]);
 
-%Generate measurements and false alarms for each scan.
-zMeasCart = cell(numSamples,1);
-SRMeasCart = cell(numSamples,1);
-zMeasJacobDet = cell(numSamples,1);
-for curScan = 1:numSamples
-    %Determine the number of false alarms to generate.
-    numFalse = PoissonD.rand(1,lambdaV);
-    numTargets = size(ZCartTrue{curScan},2);
-    if(curScan <= numSamplesTrack)
-        %Determine which, if any, targets should be detected.
-        isDet = rand(numTargets,1) < PD;
-    else
-        %We are after the end; the tracks are now gone.
-        isDet = [0;0];
-    end
-
-    %Allocate space for the detections.
-    numMeas = numFalse+sum(isDet);
-    zCur = zeros(2,numMeas);
-    curDet = 1;
-
-    if(numMeas>0)
-        %Generate the detection from the targets, if any.
-        for curTar = 1:numTargets
-            if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) < maxRange)
-                zCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
-                    + SR*randn(2,1);
-                curDet = curDet+1;
-            end
-        end
-
-        %Generate the false alarm detections, if any. 
-        rClutBounds = [minRange;maxRange];
-        azBounds = [-pi;pi];
-        for curFalse = 1:numFalse
-            r = UniformD.rand(1,rClutBounds);
-            az = UniformD.rand(1,azBounds);
-
-            zCur(:,curDet) = [r;az];
-            curDet = curDet+1;
-        end
-            
-        %We will now convert the measurements into Cartesian coordinates as
-        %we are using a converted-measurement filter.
-        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zCur,SR,0,true, ...
-            [],[],[],xi,w);
-        
-        %Take the lower-triangular square root of the covariance matrices.
-        measDetCur = zeros(numMeas,1);
-        for curMeas = 1:numMeas
-            RMeasCart(:,:,curMeas) = chol(RMeasCart(:,:,curMeas),'lower');
-            measDetCur(curMeas) ...
-                = det(calcPolarConvJacob(zCur(:,curMeas),0,true));
-        end
-        SRMeasCart{curScan} = RMeasCart;
-        zMeasJacobDet{curScan} = measDetCur;
-    end
-end
+[zMeasCart, SRMeasCart, tMeas] = genMmts( ...
+    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts);
+save("swarm_mmts", "zMeasCart", "SRMeasCart", "tMeas")
 
 %% Motion Model
 
@@ -266,9 +209,14 @@ rStates = cell(numSamples,1);
 for curScan = 1:numSamples
     zCur = zMeasCart{curScan};
     SRCur = SRMeasCart{curScan};
+
     numMeas = size(zCur,2);
-    measJacobDets = zMeasJacobDet{curScan};
-    
+    measJacobDets = zeros(numMeas,1);
+    for curMeas = 1:numMeas
+        measJacobDets(curMeas) = det(calcPolarConvJacob( ...
+            zCur(:,curMeas),0,true));
+    end
+
     %First, we create potential tracks for all of the observations.
     xNew = zeros(xDim,numMeas);
     SNew = zeros(xDim,xDim,numMeas);
