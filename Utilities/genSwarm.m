@@ -85,6 +85,9 @@ for kS = 1:Ns
         end
         if (num_fd(kT) < kS) && (kS <= num_fd(kT) + num_lt(kT))
             idx = kS - num_fd(kT);
+            if xPol{kT}(1,idx) > Rmax
+                continue
+            end
             ZCart{kS} = [ZCart{kS}, xCart{kT}(:,idx)];
             ZPol{kS} = [ZPol{kS}, xPol{kT}(:,idx)];
         end
