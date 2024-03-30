@@ -24,39 +24,22 @@ figure('Position', [80,50,950,700])
 % clf
 hold on, grid on, box on
 
+clear two_point_init
 num_scan = length(zMeasCart);
-zBuf = cell(2,1);
-SBuf = cell(2,1);
-tBuf = cell(2,1);
-
-kBuf = 0;
 for kS = 1:num_scan
 
+    tCur = tMeas{kS};
     zCur = zMeasCart{kS};
+    SRCur = SRMeasCart{kS};
+
     if(~isempty(zCur))
         scatter(zCur(1,:)/km,zCur(2,:)/km,'o');
     end
 
-    num_mmt = size(zMeasCart{kS},2);
-    if num_mmt > 0
-        kBuf = kBuf+1;
-        zBuf{kBuf} = zMeasCart{kS};
-        SBuf{kBuf} = SRMeasCart{kS};
-        tBuf{kBuf} = tMeas{kS};
-        if kBuf == 2
-            % Generate initial state
-            [x, S] = two_point_init(zBuf, SBuf, tBuf, vLims);
+    [x, S] = two_point_init(zCur, SRCur, tCur, vLims);
 
-            if ~isempty(x)
-                scatter(x(1,:)/km,x(2,:)/km,'k.','linewidth',1)
-            end
-
-            % Reset zBuf for next mmt
-            zBuf{1} = zBuf{2};
-            SBuf{1} = SBuf{2};
-            tBuf{1} = tBuf{2};
-            kBuf = 1;
-        end
+    if ~isempty(x)
+        scatter(x(1,:)/km,x(2,:)/km,'k.','linewidth',1)
     end
 
     h1 = xlabel('\bfx km');

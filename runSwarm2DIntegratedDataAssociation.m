@@ -81,13 +81,16 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
 
+init_methods = ["One-Point", "Two-Point"];
+init_method = init_methods(2);
+
 % rng("shuffle")
 rng(0)
 
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.95;
+PFT = 0.995;
 
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
@@ -153,7 +156,8 @@ Rmin = minRange;
 Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
-lam = 3;
+vLims = [Vmin, Vmax];
+lam = 13;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
@@ -168,7 +172,7 @@ sigmaAz = 0.1*deg;
 %Square root measurement covariance matrix; assume no correlation.
 SR = diag([sigmaR,sigmaAz]);
 
-[zMeasCart, SRMeasCart, tMeas] = genMmts( ...
+[zMeasCart, SRMeasCart, tMeas, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts);
 save("swarm_mmts", "zMeasCart", "SRMeasCart", "tMeas")
 
@@ -206,35 +210,36 @@ xStates = cell(numSamples,2);
 SStates = cell(numSamples,1);
 %Existence probabilities
 rStates = cell(numSamples,1);
+
+state_st = struct('x',[],'S',[],'r',[],'ID',[]);
+state_st = repmat(state_st, [numSamples,1]);
+
+clear two_point_init
 for curScan = 1:numSamples
+    tCur = tMeas{curScan};
     zCur = zMeasCart{curScan};
+    zPolCur = zMeasPol{curScan};
     SRCur = SRMeasCart{curScan};
 
     numMeas = size(zCur,2);
-    measJacobDets = zeros(numMeas,1);
-    for curMeas = 1:numMeas
-        measJacobDets(curMeas) = det(calcPolarConvJacob( ...
-            zCur(:,curMeas),0,true));
-    end
 
-    %First, we create potential tracks for all of the observations.
-    xNew = zeros(xDim,numMeas);
-    SNew = zeros(xDim,xDim,numMeas);
-    xNew(1:zDim,:) = zCur;
-    SNew(1:zDim,1:zDim,:) = SRCur;
-    %The uncertainty for the unknown velocity
-    for curDim = (zDim+1):xDim
-        SNew(curDim,curDim,:) = velInitStdDev;
+    switch init_method
+        case "One-Point"
+            [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim);
+        case "Two-Point"
+            [xNew, SNew] = two_point_init(zCur, SRCur, tCur, vLims, xDim);
     end
+    numStates = size(xNew, 2);
+
     %Initialization existence probabilities
-    rNew = PIsRealInit*ones(1,numMeas);
+    rNew = PIsRealInit*ones(1,numStates);
     
     %Generate a UUID for each potential track so that we can associate
     %tracks over time to draw lines for display. The UUIDs are 36-character
     %strings. For simplicity, we are just using the hash values of the
     %UUIDs so that they can be easily compared with >, = ,< for sorting.
-    xIDNew = zeros(1,numMeas);
-    for curNewTrack = 1:numMeas
+    xIDNew = zeros(1,numStates);
+    for curNewTrack = 1:numStates
         [~,xIDNew(curNewTrack)] = genUUID();
     end
     
@@ -255,6 +260,15 @@ for curScan = 1:numSamples
         %Update the target existence probabilities with the Markov 
         %switching model.
         r = PStayAlive*r;
+
+        % Calculate mmt Jacobians
+        measJacobDets = zeros(1,numMeas);
+        for curMeas = 1:numMeas
+            % measJacobDets(curTar) = det(calcPolarConvJacob( ...
+            %     zPolCur(:,curTar),0,true));
+            measJacobDets(curMeas) = det(calcPolarJacob( ...
+                zCur(:,curMeas),0,true));
+        end
 
         %The inclusion of r takes into account the track existence
         %probabilities.
@@ -279,7 +293,9 @@ for curScan = 1:numSamples
             SUpdate(:,:,curTar) = chol(PUpdate(:,:,curTar),'lower');
         end
         
-        rNew = probNonTargetMeas'.*rNew;
+        if length(probNonTargetMeas) == length(rNew)
+            rNew = probNonTargetMeas'.*rNew;
+        end
         
         sel = rNew>PTerminate;
         xNew = xNew(:,sel);
