@@ -1,4 +1,4 @@
-function [zMeasCart, SRMeasCart,tMeas] = genMmts( ...
+function [zMeasCart, SRMeasCart,tMeas, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts)
 %GENMMTS Summary of this function goes here
 %   Detailed explanation goes here
@@ -28,6 +28,7 @@ numSamples = length(ZCartTrue);
 %Generate measurements and false alarms for each scan.
 tMeas = cell(numSamples,1);
 zMeasCart = cell(numSamples,1);
+zMeasPol = cell(numSamples,1);
 SRMeasCart = cell(numSamples,1);
 for curScan = 1:numSamples
 
@@ -44,14 +45,14 @@ for curScan = 1:numSamples
 
     %Allocate space for the detections.
     numMeas = numFalse+sum(isDet);
-    zCur = zeros(2,numMeas);
+    zPolCur = zeros(2,numMeas);
     curDet = 1;
 
     if(numMeas>0)
         %Generate the detection from the targets, if any.
         for curTar = 1:numTargets
             if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) <= maxRange)
-                zCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
+                zPolCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
                     + SR*randn(2,1);
                 curDet = curDet+1;
             end
@@ -64,13 +65,14 @@ for curScan = 1:numSamples
             r = UniformD.rand(1,rClutBounds);
             az = UniformD.rand(1,azBounds);
 
-            zCur(:,curDet) = [r;az];
+            zPolCur(:,curDet) = [r;az];
             curDet = curDet+1;
         end
             
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zCur,SR,0,true, ...
+        zMeasPol{curScan} = zPolCur;
+        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zPolCur,SR,0,true, ...
             [],[],[],xi,w);
         
         %Take the lower-triangular square root of the covariance matrices.
