@@ -70,7 +70,7 @@ if numMeas > 0
         % State covariance
         for k = 1:length(i1)
             T = del_t(i2(k),i1(k));
-            S22 = (SBuf{2}(:,:,i2(k)) + SBuf{1}(:,:,i1(k)))/T;
+            S22 = SBuf{1}(:,:,i1(k))/T;
             S(:,:,k) = [
                 SBuf{2}(:,:,i2(k)), zeros(2,2);
                 SBuf{2}(:,:,i2(k))/T, S22];
