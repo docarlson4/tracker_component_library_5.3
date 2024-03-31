@@ -209,6 +209,8 @@ disp('Running the integrated tracking algorithm.')
 state_st = struct('x',[],'S',[],'r',[],'ID',[]);
 state_st = repmat(state_st, [numSamples,1]);
 
+track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
+
 clear two_point_init
 for curScan = 1:numSamples
     tCur = tMeas{curScan};
@@ -233,9 +235,9 @@ for curScan = 1:numSamples
     %tracks over time to draw lines for display. The UUIDs are 36-character
     %strings. For simplicity, we are just using the hash values of the
     %UUIDs so that they can be easily compared with >, = ,< for sorting.
-    xIDNew = zeros(1,numStates);
+    IDNew = zeros(1,numStates);
     for curNewTrack = 1:numStates
-        [~,xIDNew(curNewTrack)] = genUUID();
+        [~,IDNew(curNewTrack)] = genUUID();
     end
     
     %Next, if there are any existing states, we want to predict them to the
@@ -296,18 +298,31 @@ for curScan = 1:numSamples
         xNew = xNew(:,sel);
         SNew = SNew(:,:,sel);
         rNew = rNew(sel);
-        xIDNew = xIDNew(sel);
+        IDNew = IDNew(sel);
         
         state_st(curScan).x = [xNew, xUpdate];
-        state_st(curScan).ID = [xIDNew, xID];
+        state_st(curScan).ID = [IDNew, xID];
         state_st(curScan).S = cat(3,SNew,SUpdate);
         state_st(curScan).r = [rNew, rUpdate];
     else
         state_st(curScan).x = xNew;
-        state_st(curScan).ID = xIDNew;
+        state_st(curScan).ID = IDNew;
         state_st(curScan).S = SNew;
         state_st(curScan).r = rNew;
     end
+
+    %% Populate track_st
+    xCur = state_st(curScan).x;
+    SCur = state_st(curScan).S;
+    IDCur = state_st(curScan).ID;
+    rCur = state_st(curScan).r;
+    
+    numHyp = length(rCur);
+    if length(track_st) <= numHyp
+        track_st = repmat(track_st, [2*numHyp,1]);
+%         track_st()
+    end
+
 end
 
 %% Plots
