@@ -26,10 +26,10 @@ if isempty(kBuf)
     tBuf = cell(2,0);
 end
 
-numMeas = size(zCur,2);
-s = zeros(xDim,numMeas);
-S = zeros(xDim,xDim,numMeas);
+s = zeros(xDim,0);
+S = zeros(xDim,xDim,0);
 
+numMeas = size(zCur,2);
 if numMeas > 0
     kBuf = kBuf+1;
     zBuf{kBuf} = zCur;
