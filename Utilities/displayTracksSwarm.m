@@ -7,21 +7,26 @@ hold on, grid on, box on
 
 PDisp = 0.98;
 
+track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
+
 trackList = AVLTree();
 for curScan = 1:numSamples
+
+    % Plot truth data
     if ~isempty(ZCartTrue{curScan})
         xTrue = ZCartTrue{curScan};
         scatter(xTrue(2,:)/km,xTrue(1,:)/km,'bo','linewidth',1)
     end
     
+    % Plot measurements
     zCur = zMeasCart{curScan};
     if(~isempty(zCur))
         scatter(zCur(1,:)/km,zCur(2,:)/km,'ok');
     end
     
-    stateCur = xStates{curScan,1};
-    IDCur = xStates{curScan,2};
-    rCur = rStates{curScan};
+    stateCur = state_st(curScan).x;
+    IDCur = state_st(curScan).ID;
+    rCur = state_st(curScan).r;
     
     numHyp = length(rCur);
     

@@ -81,7 +81,7 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
 
-init_methods = ["One-Point", "Two-Point"];
+init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
 init_method = init_methods(2);
 
 % rng("shuffle")
@@ -157,7 +157,7 @@ Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
 vLims = [Vmin, Vmax];
-lam = 13;
+lam = 3;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
@@ -201,15 +201,10 @@ F = FPolyKal(Ts, xDim, 1);
 %Now for the tracker with integrated track initiation/ termination.
 disp('Running the integrated tracking algorithm.') 
 
-%We will save the value of each track at each time. Thus, a cell array
-%holds the track states at each time. The first column in xStates is the
-%actual values, the second column in xStates is an ID so that we can
+%We will save the value of each track at each time. Thus, a structure
+%holds the track states at each time. The first field in state_st are the
+%actual values, the fourth field in state_st is an ID so that we can
 %associate the tracks across time.
-xStates = cell(numSamples,2);
-%Lower-triangular square root covariance matrices.
-SStates = cell(numSamples,1);
-%Existence probabilities
-rStates = cell(numSamples,1);
 
 state_st = struct('x',[],'S',[],'r',[],'ID',[]);
 state_st = repmat(state_st, [numSamples,1]);
@@ -245,11 +240,11 @@ for curScan = 1:numSamples
     
     %Next, if there are any existing states, we want to predict them to the
     %current time step and update them with the measurements
-    if(curScan>1&&~isempty(xStates{curScan-1,1}))
-        x = xStates{curScan-1,1};
-        S = SStates{curScan-1};
-        r = rStates{curScan-1};
-        xID = xStates{curScan-1,2};
+    if ( curScan > 1 ) && ~isempty( state_st(curScan-1).x )
+        x = state_st(curScan-1).x;
+        S = state_st(curScan-1).S;
+        r = state_st(curScan-1).r;
+        xID = state_st(curScan-1).ID;
         numTargetsCur = size(x,2);
         
         %Predict the tracks to the current time.
@@ -290,7 +285,7 @@ for curScan = 1:numSamples
 
         SUpdate = zeros(size(PUpdate));
         for curTar = 1:numTargetsCur
-            SUpdate(:,:,curTar) = chol(PUpdate(:,:,curTar),'lower');
+            SUpdate(:,:,curTar) = cholSemiDef(PUpdate(:,:,curTar),'lower');
         end
         
         if length(probNonTargetMeas) == length(rNew)
@@ -303,15 +298,15 @@ for curScan = 1:numSamples
         rNew = rNew(sel);
         xIDNew = xIDNew(sel);
         
-        xStates{curScan,1} = [xNew,xUpdate];
-        xStates{curScan,2} = [xIDNew,xID];
-        SStates{curScan} = cat(3,SNew,SUpdate);
-        rStates{curScan} = [rNew,rUpdate];
+        state_st(curScan).x = [xNew, xUpdate];
+        state_st(curScan).ID = [xIDNew, xID];
+        state_st(curScan).S = cat(3,SNew,SUpdate);
+        state_st(curScan).r = [rNew, rUpdate];
     else
-        xStates{curScan,1} = xNew;
-        xStates{curScan,2} = xIDNew;
-        SStates{curScan} = SNew;
-        rStates{curScan} = rNew;
+        state_st(curScan).x = xNew;
+        state_st(curScan).ID = xIDNew;
+        state_st(curScan).S = SNew;
+        state_st(curScan).r = rNew;
     end
 end
 
