@@ -7,8 +7,6 @@ hold on, grid on, box on
 
 PDisp = 0.98;
 
-track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
-
 trackList = AVLTree();
 for curScan = 1:numSamples
 
@@ -24,12 +22,13 @@ for curScan = 1:numSamples
         scatter(zCur(1,:)/km,zCur(2,:)/km,'ok');
     end
     
-    stateCur = state_st(curScan).x;
+    xCur = state_st(curScan).x;
+    SCur = state_st(curScan).S;
     IDCur = state_st(curScan).ID;
     rCur = state_st(curScan).r;
     
     numHyp = length(rCur);
-    
+
     trackListNew = AVLTree();
     
     for curHyp = 1:numHyp
@@ -40,13 +39,13 @@ for curScan = 1:numSamples
         if(~isempty(prevTrackLoc))
             prevTrackLoc = prevTrackLoc.value;
             
-            curTrackLoc = stateCur(1:2,curHyp);
+            curTrackLoc = xCur(:,curHyp);
             plot([prevTrackLoc(1);curTrackLoc(1)]/km,[prevTrackLoc(2);curTrackLoc(2)]/km,'-g','linewidth',2);
             trackListNew.insert(KeyVal(curID,curTrackLoc));
         elseif(rCur(curHyp)>PDisp)
             %We only start the tentative track when it is above the
             %detection threshold for track existence.
-            curTrackLoc = stateCur(1:2,curHyp);
+            curTrackLoc = xCur(:,curHyp);
             
             if(~isempty(prevTrackLoc))
                 prevTrackLoc = prevTrackLoc.value;
