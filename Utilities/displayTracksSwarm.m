@@ -61,6 +61,7 @@ for curScan = 1:numSamples
     trackList = trackListNew;
 
 
+
     h1 = xlabel('\bfx km');
     h2 = ylabel('\bfy km');
     h3 = title('\bf\fontsize{14}True and Estimated Trajectories');
@@ -74,4 +75,27 @@ for curScan = 1:numSamples
 
     drawnow
 end
+
+%% Plot Tracks 
+
+% Filters
+min_hits = 5;
+num_hits = [track_st.num_hits]';
+lgcl_hits = num_hits >= min_hits;
+
+track_st = track_st(lgcl_hits);
+num_trx = length(track_st);
+clrs = lines(num_trx);
+for kT = num_trx:-1:1
+    lgcl_r = track_st(kT).r > PIsRealInit;
+    x = track_st(kT).x(1,lgcl_r);
+    y = track_st(kT).x(2,lgcl_r);
+    vx = track_st(kT).x(3,:);
+    vy = track_st(kT).x(4,:);
+    hp(kT) = plot(x/km,y/km,'Color',clrs(kT,:),LineWidth=2, ...
+        DisplayName="track "+num2str(kT));
+end
+legend(hp)
+
+
 
