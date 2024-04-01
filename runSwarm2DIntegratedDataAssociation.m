@@ -95,6 +95,7 @@ PFT = 0.995;
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
 lambdaV = -log( 1 - PFT );
+% lambdaV = 2;
 
 %The viewing region range. This is important for dealing with the clutter
 %model.
@@ -312,16 +313,7 @@ for curScan = 1:numSamples
     end
 
     %% Populate track_st
-    xCur = state_st(curScan).x;
-    SCur = state_st(curScan).S;
-    IDCur = state_st(curScan).ID;
-    rCur = state_st(curScan).r;
-    
-    numHyp = length(rCur);
-    if length(track_st) <= numHyp
-        track_st = repmat(track_st, [2*numHyp,1]);
-%         track_st()
-    end
+    track_st = get_tracks(curScan, state_st(curScan), track_st);
 
 end
 
