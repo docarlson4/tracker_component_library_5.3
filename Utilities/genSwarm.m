@@ -1,4 +1,4 @@
-function [ZCart, ZPol, Ts, num_tgt] = genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam)
+function [ZCart, ZPol, Ts, num_tgt, max_acc] = genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam)
 %GENSWARM Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -16,7 +16,6 @@ function [ZCart, ZPol, Ts, num_tgt] = genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, l
 %
 %
 
-% Developed in Matlab 9.12.0.2327980 (R2022a) Update 7 on PCWIN64.
 % Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2024-03-02 13:36
 
 if nargin == 0
@@ -34,7 +33,7 @@ if nargin == 0
 end
 
 %%
-F = kron([1,Ts;0,1], eye(2));
+f = @(x) fTransCoordTurn2D(Ts,x);
 
 pois = PoissonD;
 
@@ -53,18 +52,28 @@ speed = Vmin + (Vmax-Vmin)*rand(num_tgt,1);
 bet_tgt = alp_tgt + (-pi/4 + pi/2*rand(num_tgt,1)) + pi;
 vel = [speed.*sin(bet_tgt), speed.*cos(bet_tgt)]';
 
+% Angular speed
+rv = cross([pos;zeros(1,num_tgt)],[vel;zeros(1,num_tgt)],1);
+w = rv(3,:)./(rng_tgt.*rng_tgt)';
+% w = w .* (2 * (2*rand(1,num_tgt)-0));
+rCtr = speed./w';
+max_acc = rCtr.*w'.^2;
+
 % Target lifetime
 num_lt = 3 + pois.rand([num_tgt,1],Ns/3-3);
 xCart = cell(num_tgt, 1);
 xPol = cell(num_tgt, 1);
-x0 = [pos;vel];
+xDot = cell(num_tgt, 1);
+x0 = [pos;vel;w];
 for kT = 1:num_tgt
     xCart{kT} = x0(:,kT);
     xPol{kT} = [
         vecnorm( xCart{kT}(1:2,1) );
         atan2( xCart{kT}(1,1), xCart{kT}(2,1) )];
     for kLT = 2:num_lt(kT)
-        xCart{kT}(:,kLT) = F * xCart{kT}(:,kLT-1);
+        xCart{kT}(:,kLT) = f( xCart{kT}(:,kLT-1) );
+        xDot{kT}(:,kLT) = (xCart{kT}(:,kLT) - xCart{kT}(:,kLT-1))/Ts;
+
         xPol{kT} = [xPol{kT}, [
             vecnorm( xCart{kT}(1:2,kLT) );
             atan2( xCart{kT}(1,kLT), xCart{kT}(2,kLT) )]];
