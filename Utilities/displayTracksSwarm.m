@@ -5,6 +5,10 @@ figure('Position', [80,50,950,700])
 % clf
 hold on, grid on, box on
 
+ttl(1) = "\bf\fontsize{14}True and Estimated Trajectories";
+ttl(2) = "\bf\fontsize{12}Moton Model: " + motion_model ...
+    + ", State Initialization: " + init_method;
+
 PDisp = 0.98;
 
 trackList = AVLTree();
@@ -64,7 +68,7 @@ for curScan = 1:numSamples
 
     h1 = xlabel('\bfx km');
     h2 = ylabel('\bfy km');
-    h3 = title('\bf\fontsize{14}True and Estimated Trajectories');
+    h3 = title(ttl);
     set(gca,'FontSize',14,'FontWeight','bold','FontName','Times')
     set(h1,'FontSize',14,'FontWeight','bold','FontName','Times')
     set(h2,'FontSize',14,'FontWeight','bold','FontName','Times')
@@ -78,24 +82,37 @@ end
 
 %% Plot Tracks 
 
-% Filters
+% Filter minimum existence probability: PIsRealInit
+rCell = {track_st.r}';
+lgcl_r = cellfun(@(x) any(x > 0.5), rCell, 'UniformOutput',false);
+lgcl_r = cell2mat(lgcl_r);
+track_st = track_st(lgcl_r);
+error("double check Filter minimum existence probability")
+
+% Filters minimum number of hits: num_hits
 min_hits = 5;
 num_hits = [track_st.num_hits]';
 lgcl_hits = num_hits >= min_hits;
-
 track_st = track_st(lgcl_hits);
+
+% Plot remaining tracks
 num_trx = length(track_st);
 clrs = lines(num_trx);
+line_style = ["p-","*-","s-","v-","^-","d-"];
+lgcl_hp = false(1,num_trx);
 for kT = num_trx:-1:1
-    lgcl_r = track_st(kT).r > PIsRealInit;
-    x = track_st(kT).x(1,lgcl_r);
-    y = track_st(kT).x(2,lgcl_r);
+    x  = track_st(kT).x(1,:);
+    y  = track_st(kT).x(2,:);
     vx = track_st(kT).x(3,:);
     vy = track_st(kT).x(4,:);
-    hp(kT) = plot(x/km,y/km,'Color',clrs(kT,:),LineWidth=2, ...
-        DisplayName="track "+num2str(kT));
+    if any(lgcl_r)
+        kL = floor((kT-1)/7)+1;
+        hp(kT) = plot(x/km,y/km,line_style(kL),'Color',clrs(kT,:), ...
+            LineWidth=2, DisplayName="track "+num2str(kT));
+        lgcl_hp(kT) = true;
+    end
 end
-legend(hp)
+legend(hp(lgcl_hp))
 
 
 
