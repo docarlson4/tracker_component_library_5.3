@@ -81,8 +81,15 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
 
+% State motion model
+motion_models = [
+    "Gauss-Markov Velocity (GMV)" 
+    "Nearly Constant Velocity (NCV)"];
+motion_model = motion_models(1);
+
+% State initialization method
 init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
-init_method = init_methods(2);
+init_method = init_methods(1);
 
 % rng("shuffle")
 rng(0)
@@ -160,9 +167,10 @@ Vmax = 600*mph;
 vLims = [Vmin, Vmax];
 lam = 3;
 
-[ZCartTrue, ZPolTrue, Ts, num_tgt_truth] = ...
+[ZCartTrue, ZPolTrue, Ts, num_tgt_truth, max_acc] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
 numSamples = length(ZCartTrue);
+% maxAccel = max(max_acc);
 
 %% Generate Measurements
 disp('Generating measurements.') 
@@ -179,24 +187,33 @@ save("swarm_mmts", "zMeasCart", "SRMeasCart", "tMeas")
 
 %% Motion Model
 
-%Parameters for the dynamic model. We are using a first-order Gauss-Markov
-%model.
-% tau = 20;%20 seconds; the assumed maneuver decorrelation time.
-% maxAccel = 9.8*10;%Assume max 3G turn
-% %Rule-of-thumb process noise suggestion.
-% q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
-% Q = QGaussMarkov(Ts,xDim,q,tau,1);%Process noise covariance matrix.
-% SQ = chol(Q,'lower');
-% 
-% F = FGaussMarkov(Ts,xDim,tau,1);%State transition matrix
+switch motion_model
 
-maxAccel = 9.8*1;% in g's
-q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
+    case "Gauss-Markov Velocity (GMV)" 
+        %Parameters for the dynamic model. We are using a first-order Gauss-Markov
+        %model.
+        tau = 5*Ts;%20 seconds; the assumed maneuver decorrelation time.
+        maxAccel = 9.8*10;%Assume max 10G turn
+        %Rule-of-thumb process noise suggestion.
+        q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
+        Q = QGaussMarkov(Ts,xDim,q,tau,1);%Process noise covariance matrix.
+        SQ = chol(Q,'lower');
 
-Q = QPolyKal(Ts, xDim, 1, q);%Process noise covariance matrix.
-SQ = chol(Q,'lower');
+        F = FGaussMarkov(Ts,xDim,tau,1);%State transition matrix
 
-F = FPolyKal(Ts, xDim, 1);
+    case "Nearly Constant Velocity (NCV)"
+        maxAccel = 9.8*10;% in g's
+        q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
+
+        Q = QPolyKal(Ts, xDim, 1, q);%Process noise covariance matrix.
+        SQ = chol(Q,'lower');
+
+        F = FPolyKal(Ts, xDim, 1);
+
+    otherwise
+        error("Motion Model Undefined")
+
+end
 
 %% Track Filter
 %Now for the tracker with integrated track initiation/ termination.
@@ -226,6 +243,8 @@ for curScan = 1:numSamples
             [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim);
         case "Two-Point"
             [xNew, SNew] = two_point_init(zCur, SRCur, tCur, vLims, xDim);
+        otherwise
+            error("State Initialization Undefined")
     end
     numStates = size(xNew, 2);
 
