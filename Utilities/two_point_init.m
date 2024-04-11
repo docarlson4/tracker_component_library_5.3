@@ -30,6 +30,12 @@ s = zeros(xDim,0);
 S = zeros(xDim,xDim,0);
 
 numMeas = size(zCur,2);
+if isscalar(tCur)
+    tCur = tCur*ones(1,numMeas);
+end
+if size(SRCur,3) == 1
+    SRCur = repmat(SRCur, [1,1,numMeas]);
+end
 if numMeas > 0
     kBuf = kBuf+1;
     zBuf{kBuf} = zCur;
