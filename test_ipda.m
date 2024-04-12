@@ -10,19 +10,21 @@ dbstop if error
 
 MyConstants
 
-% Developed in Matlab 9.12.0.2529717 (R2022a) Update 8 on PCWIN64.
 % Doug Carlson (doug.o.carlson@gmail.com), 2024-04-10 19:20
 
+rng(0)
+
 %% Monte Carlo Samples
-Nmc = 1;
+numMC = 1;
 
 %% Measurement Model
+zDim = 2;
 mmt_space = [
     0, 0
     1e3, 400];
 mmt_vol = prod(diff(mmt_space)); % m^2
 
-lambda = 1e-5; % 1/scan/m^2
+lambda = 1e-4; % 1/scan/m^2
 lambdaV = lambda * mmt_vol;
 
 PD = 0.9;
@@ -57,7 +59,7 @@ p12 = 0.02; p22 = 1;
 PIsRealInit = 0.2;
 
 % Gate Probability
-PG = 0.98;
+PG = 0.9999;
 gammaVal = ChiSquareD.invCDF(PG,2);
 
 
@@ -69,8 +71,8 @@ for curScan = 2:numSamples
 end
 
 %% Measurements
-zMeasCart = cell(numSamples,Nmc);
-for kMC = 1:Nmc
+zMeasCart = cell(numSamples,numMC);
+for curMC = 1:numMC
 
     for curScan = 1:numSamples
 
@@ -113,7 +115,7 @@ for kMC = 1:Nmc
 
             %We will now convert the measurements into Cartesian coordinates as
             %we are using a converted-measurement filter.
-            zMeasCart{curScan, kMC} = zCartCur;
+            zMeasCart{curScan, curMC} = zCartCur;
         end
 
     end
@@ -121,65 +123,82 @@ for kMC = 1:Nmc
 end
 
 %% Filter
-for kMC = 1:Nmc
+state_st = struct('x',[],'SP',[],'r',[],'ID',[]);
+state_st = repmat(state_st, [numSamples,numMC]);
+   
+for curMC = 1:numMC
 %We will save the value of each track at each time. Thus, a structure
 %holds the track states at each time. The first field in state_st are the
 %actual values, the fourth field in state_st is an ID so that we can
 %associate the tracks across time.
 
-state_st = struct('x',[],'S',[],'r',[],'ID',[]);
-state_st = repmat(state_st, [numSamples,1]);
-
-track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
-   
 clear two_point_init
+x = zeros(4,0);
 for curScan = 1:numSamples
     tCur = (curScan-1)*T;
     zCur = zMeasCart{curScan};
     SRCur = SR;
     numMeas = size(zCur,2);
-    % case "Two-Point"
-    [xNew, SNew] = two_point_init(zCur, SRCur, tCur, [25,50], xDim);
 
-    numStates = size(xNew, 2);
+    if isempty(x)
+        % case "Two-Point" initialization
+        [x, SP] = two_point_init(zCur(:,1), SRCur, tCur, [0,50], xDim);
 
-    %Initialization existence probabilities
-    rNew = PIsRealInit*ones(1,numStates);
+        %% Initialize existence probabilities
+        r = PIsRealInit;
 
-    %Next, if there are any existing states, we want to predict them to the
-    %current time step and update them with the measurements
-    if ( curScan > 1 ) && ~isempty( state_st(curScan-1).x )
-        x = state_st(curScan-1).x;
-        S = state_st(curScan-1).S;
-        r = state_st(curScan-1).r;
-        xID = state_st(curScan-1).ID;
-        numTargetsCur = size(x,2);
-        
-        %Predict the tracks to the current time.
-        for curTar = 1:numTargetsCur
-            [x(:,curTar),S(:,:,curTar)] = sqrtDiscKalPred( ...
-                x(:,curTar),S(:,:,curTar),F,SQ);
-        end
-        %Update the target existence probabilities with the Markov 
-        %switching model.
-        r = p11*r;
-
-        %The inclusion of r takes into account the track existence
-        %probabilities.
-        measJacobDets = [];
-        [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCur,SRCur,[], ...
-            PD,lambda,r,gammaVal,measJacobDets);
-
-        disp('')
+        state_st(curScan, curMC).x = x;
+        state_st(curScan, curMC).SP = SP;
+        state_st(curScan, curMC).r = r;        
     else
-        state_st(curScan).x = xNew;
-%         state_st(curScan).ID = IDNew;
-        state_st(curScan).S = SNew;
-        state_st(curScan).r = rNew;        
-    end    
+        %% Predict the tracks to the current time.
+        [xPred,SPPred] = sqrtDiscKalPred(x,SP,F,SQ);
+        PPred = SPPred*SPPred';
 
-    %% Populate track_st
-    track_st = get_tracks(curScan, state_st(curScan), track_st);
+        % Update the target existence probabilities with the Markov 
+        % switching model.
+        rPred = p11*r;
+
+        %% Predicted mmt and validated innovation
+        zPred = H*xPred;
+        nu = zMeasCart{curScan} - zPred;
+        S = H*PPred*H' + R;
+        lgcl_gam = dot(nu,S\nu) < gammaVal;
+        sprintf("Num in gate: %d", sum(lgcl_gam))
+%         disp([dB(gammaVal), dB(dot(nu,S\nu))])
+        nu = nu(:,lgcl_gam);
+
+        %% Kalman Gain
+        K = PPred * (H' * (S\eye(zDim)));
+
+        %% Likelihoods: Lam
+        gauss = GaussianD;
+        Lam = gauss.PDF(nu,[],S);
+        del = PD*PG * (1 - mmt_vol/lambdaV * sum(Lam,2));
+        bet0 = (1-PD*PG)*rPred/(1 - del*rPred);
+        beti = PD*PG * mmt_vol/lambdaV * rPred * Lam/(1 - del*rPred);
+        r = sum([bet0,beti]);
+
+        %% State Updates
+
+        nub = nu * beti';
+        x = xPred + K * nub;
+
+        Pc = PPred - K*S*K';
+
+        nunu = nub*nub';
+        for k = 1:sum(lgcl_gam)
+            nunu = nunu + beti(k)*(nu(:,k)*nu(:,k)');
+        end
+        Pw = K*(nunu)*K';
+
+        P = bet0*PPred + (1-bet0)*Pc + Pw;
+        SP = cholSemiDef(P,'lower');
+
+        state_st(curScan, curMC).x = x;
+        state_st(curScan, curMC).SP = SP;
+        state_st(curScan, curMC).r = r;        
+    end    
 
 end
 
@@ -199,8 +218,12 @@ for kS = 1:numSamples
 end
 plot(s0(1,:),s0(2,:),'ko')
 
+s = [state_st.x];
+r = [state_st.r]
+plot(s(1,:),s(2,:),'r*')
+
 axis equal
-axis(mmt_space(:)')
+% axis(mmt_space(:)')
 
 
 
