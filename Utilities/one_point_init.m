@@ -1,4 +1,4 @@
-function [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim)
+function [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim)
 %ONE_POINT_INIT Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -17,7 +17,7 @@ function [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim)
 
 %%
 
-numMeas = size(zCur,2);
+[zDim, numMeas] = size(zCur);
 
 %First, we create potential tracks for all of the observations.
 xNew = zeros(xDim,numMeas);
