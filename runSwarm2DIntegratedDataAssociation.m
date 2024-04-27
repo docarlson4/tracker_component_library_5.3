@@ -87,9 +87,8 @@ motion_models = [
     "Nearly Constant Velocity (NCV)"];
 motion_model = motion_models(1);
 
-% State initialization method
-init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
-init_method = init_methods(1);
+xDim = 4;
+zDim = 2;
 
 % rng("shuffle")
 rng(0)
@@ -138,9 +137,6 @@ PIsRealInit = 0.1;
 
 %The probability of existence below which a track is terminated.
 PTerminate = 1e-4;
-
-xDim = 4;
-zDim = 2;
 
 % Elliptical gate probability
 PG = 0.995;
@@ -215,6 +211,13 @@ switch motion_model
 
 end
 
+%% State Initialization
+init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
+state_init = Tracker.StateInitialization(...
+    "Type", "Two-Point", "VelMax", Vmax, "StateDim", xDim);
+% State initialization method - see displayTracksSwarm.m
+init_method = state_init.Type;
+
 %% Track Filter
 %Now for the tracker with integrated track initiation/ termination.
 disp('Running the integrated tracking algorithm.') 
@@ -238,14 +241,8 @@ for curScan = 1:numSamples
 
     numMeas = size(zCur,2);
 
-    switch init_method
-        case "One-Point"
-            [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim);
-        case "Two-Point"
-            [xNew, SNew] = two_point_init(zCur, SRCur, tCur, vLims, xDim);
-        otherwise
-            error("State Initialization Undefined")
-    end
+    % State initialization
+    [xNew, SNew] = state_init.Initialize(tCur, zCur, SRCur);
     numStates = size(xNew, 2);
 
     %Initialization existence probabilities
