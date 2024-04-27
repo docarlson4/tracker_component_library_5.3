@@ -87,10 +87,10 @@ rCell = {track_st.r}';
 lgcl_r = cellfun(@(x) any(x > 0.5), rCell, 'UniformOutput',false);
 lgcl_r = cell2mat(lgcl_r);
 track_st = track_st(lgcl_r);
-error("double check Filter minimum existence probability")
+% error("double check Filter minimum existence probability")
 
 % Filters minimum number of hits: num_hits
-min_hits = 5;
+min_hits = 15;
 num_hits = [track_st.num_hits]';
 lgcl_hits = num_hits >= min_hits;
 track_st = track_st(lgcl_hits);
