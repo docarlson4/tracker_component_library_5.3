@@ -6,7 +6,7 @@ figure('Position', [80,50,950,700])
 hold on, grid on, box on
 
 ttl(1) = "\bf\fontsize{14}True and Estimated Trajectories";
-ttl(2) = "\bf\fontsize{12}Moton Model: " + motion_model ...
+ttl(2) = "\bf\fontsize{12}Moton Model: " + motion_model_method ...
     + ", State Initialization: " + init_method;
 
 PDisp = 0.98;
