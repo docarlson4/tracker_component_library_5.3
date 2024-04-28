@@ -81,13 +81,6 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
 
-% State motion model
-motion_models = [
-    "Gauss-Markov Velocity (GMV)" 
-    "Nearly Constant Velocity (NCV)"];
-motion_model = motion_models(1);
-
-xDim = 4;
 zDim = 2;
 
 % rng("shuffle")
@@ -139,7 +132,7 @@ PIsRealInit = 0.1;
 PTerminate = 1e-4;
 
 % Elliptical gate probability
-PG = 0.995;
+PG = 0.95;
 gammaVal = ChiSquareD.invCDF(PG,zDim);
 
 %Potential new tracks are started using one-point differencing. Usually,
@@ -147,10 +140,6 @@ gammaVal = ChiSquareD.invCDF(PG,zDim);
 %standard deviation value (in each dimension) based loosely on a standard
 %maximum velocity.
 velInitStdDev = 500;%(m/s)
-
-%Cartesian measurement matrix
-H = [1,0,0,0;
-   0,1,0,0];
 
 %% Generate Target Truth Data
 
@@ -183,38 +172,39 @@ save("swarm_mmts", "zMeasCart", "SRMeasCart", "tMeas")
 
 %% Motion Model
 
-switch motion_model
+% Position space dimension
+spaceDim = 2;
 
-    case "Gauss-Markov Velocity (GMV)" 
-        %Parameters for the dynamic model. We are using a first-order Gauss-Markov
-        %model.
-        tau = 5*Ts;%20 seconds; the assumed maneuver decorrelation time.
-        maxAccel = 9.8*10;%Assume max 10G turn
-        %Rule-of-thumb process noise suggestion.
-        q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
-        Q = QGaussMarkov(Ts,xDim,q,tau,1);%Process noise covariance matrix.
-        SQ = chol(Q,'lower');
-
-        F = FGaussMarkov(Ts,xDim,tau,1);%State transition matrix
-
-    case "Nearly Constant Velocity (NCV)"
-        maxAccel = 9.8*10;% in g's
-        q = processNoiseSuggest('PolyKal-ROT',maxAccel,Ts);
-
-        Q = QPolyKal(Ts, xDim, 1, q);%Process noise covariance matrix.
-        SQ = chol(Q,'lower');
-
-        F = FPolyKal(Ts, xDim, 1);
-
-    otherwise
-        error("Motion Model Undefined")
-
-end
+% State motion model
+motion_models = [
+    "Gauss-Markov Velocity (GMV)" 
+    "Nearly Constant Velocity (NCV)"
+    "Nearly Constant Acceleration (NCA)"];
+% Extra parameters required by motion models
+%   NCV: xDim = 4
+%   - maximum acceleration: maxAcc (m/s/s)
+%   NCA: xDim = 6
+%   - maximum jerk: maxJrk (m/s/s/s)
+%   GMV: xDim = 4
+%   - maximum acceleration: maxAcc (m/s/s)
+%   - maneuver decorrelation time: tau (s)
+maxAcc = 9.8*2; % in g's
+maxJrk = 0.1;
+tau = 25*Ts;   % maneuver decorrelation time (s)
+xDim = 4;
+motion_model = Tracker.MotionModel( ...
+    "Type", "GMV", "StateDim", xDim, ...
+    "SpaceDim", spaceDim, "RevisitTime", Ts, ...
+    "MaxKinVar", maxAcc, "Tau", tau);
+% State motion model method - see displayTracksSwarm.m
+motion_model_method = motion_model.Type;
 
 %% State Initialization
 init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
 state_init = Tracker.StateInitialization(...
-    "Type", "Two-Point", "VelMax", Vmax, "StateDim", xDim);
+    "Type", "One-Point", "VelMax", Vmax, ...
+    "StateDim", xDim, "SpaceDim", spaceDim, ...
+    "MotionModelType", motion_model.Type);
 % State initialization method - see displayTracksSwarm.m
 init_method = state_init.Type;
 
@@ -269,7 +259,9 @@ for curScan = 1:numSamples
         %Predict the tracks to the current time.
         for curTar = 1:numTargetsCur
             [x(:,curTar),S(:,:,curTar)] = sqrtDiscKalPred( ...
-                x(:,curTar),S(:,:,curTar),F,SQ);
+                x(:,curTar),S(:,:,curTar), ...
+                motion_model.F, ...
+                motion_model.SQ);
         end
         %Update the target existence probabilities with the Markov 
         %switching model.
