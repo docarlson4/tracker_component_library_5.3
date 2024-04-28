@@ -3,14 +3,17 @@ classdef StateInitialization < handle
     
     properties(Access=private)
         expectedTypes = ["One-Point", "Two-Point"];
+        motionModelTypes = ["NCV", "NCA", "GMV"]
     end
     properties
-        Type    % One-Point, Two-Point
-        StateDim
+        Type        % input ["One-Point", "Two-Point"]
+        StateDim    % input xDim
+        SpaceDim    % input
         VelMin
         VelMax
         AccMax
         JrkMax
+        MotionModelType
     end
     
     methods
@@ -18,10 +21,12 @@ classdef StateInitialization < handle
             % STATEINITIALIZATION
             DEFAULT.Type = "One-Point";
             DEFAULT.StateDim = 6;
+            DEFAULT.SpaceDim = 3;
             DEFAULT.VelMin = 0;
             DEFAULT.VelMax = 100;
             DEFAULT.AccMax = 10;
             DEFAULT.JrkMax = 1;
+            DEFAULT.MotionModelType = "NCV";
 
             p = inputParser;
 
@@ -36,6 +41,7 @@ classdef StateInitialization < handle
             end
             
             obj = init(obj);
+            clear TwoPoint
         end
 
         function [xNew, SNew] = Initialize(obj, tCur, zCur, SRCur)
@@ -58,5 +64,9 @@ function obj = init(obj)
 %INIT Validate inputs
 if ~any(contains(obj.Type, obj.expectedTypes))
     error("Wrong Type. Expected " + strjoin(obj.expectedTypes, ", "))
+end
+if ~any(contains(obj.MotionModelType, obj.motionModelTypes ))
+    error("Wrong MotionModelType. Expected " ...
+        + strjoin(obj.motionModelTypes, ", "))
 end
 end
