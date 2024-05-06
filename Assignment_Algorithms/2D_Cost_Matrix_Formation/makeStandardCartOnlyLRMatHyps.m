@@ -151,6 +151,10 @@ numTar=size(xPred,2);
 zDim=size(zCart,1);
 numMeas=size(zCart,2);
 
+if length(lambda) ~= numMeas
+    lambda = lambda*ones(1,numMeas);
+end
+
 if(nargin<8||isempty(rPred))
     %Assume all targets exist with probability 1.
     rPred=ones(numTar,1);
@@ -258,7 +262,7 @@ for curTar=1:numTar
         end
 
         %Evaluate the likelihood ratio.
-        A(curTar,curMeas)=PD(curTar)/(JDet*lambda)*GaussianD.PDFS(innov,zeros(zDim,1),Szz);
+        A(curTar,curMeas)=PD(curTar)/(JDet*lambda(curMeas))*GaussianD.PDFS(innov,zeros(zDim,1),Szz);
     end
 end
 end
