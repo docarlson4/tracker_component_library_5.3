@@ -32,10 +32,10 @@ lambda_hi = 5e-5; % Nc/m^2
 mmt_space_hi = [ -Lx/2  Ly/6; Lx/2 Ly/2];
 mmt_space_lo = [ -Lx/2 -Ly/2; Lx/2 Ly/6];
 
-%% Clutter Map Region
-
 lx = 100;
 ly = 100;
+
+%% Clutter Map Region
 
 xc = 0:lx:Lx;
 xc = xc(2:end) - diff(xc)/2;
@@ -68,6 +68,11 @@ for kS = 1:num_scans
 
 end
 
+%% Confirm ClutterEstimation Class
+cm_obj = Tracker.ClutterEstimation("Type","Classical", ...
+    "AveragingLength", L, "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
+    "CellSize", [lx,ly])
+
 %% Classic Clutter Map
 map_classic = zeros(num_y, num_x);
 for kS = 1:num_scans
@@ -78,36 +83,39 @@ for kS = 1:num_scans
     mu = sum(lgcl_y & lgcl_x, 2); % Sum over the second dimension
     mu = reshape(mu, [num_y, num_x]);
     map_classic = alp .* map_classic + (1-alp) .* mu;
+
+    cm_obj.ClutterMap(zClut{kS}, kS);
 end
 map_classic = map_classic/(lx*ly);
 
-%% Spacial Clutter Map
-rat = lx/ly;
-map_spatial = zeros(num_y, num_x);
-for kS = 1:num_scans
-    idx = min(kS, L);
-    alp = (idx-1)/idx; % Compute alpha outside the loop
+%% Spatial Clutter Map
 
-    xm = zClut{kS}(1,:);
-    ym = zClut{kS}(2,:);
-
-    mu = zeros(num_cells,1);
-    for kC = 1:num_cells
-        [~, idx_x] = min( abs(xm - Xc(kC)) );
-        [~, idx_y] = min( abs(ym - Yc(kC)) );
-        if abs(xm(idx_x) - Xc(kC)) < abs(ym(idx_y) - Yc(kC)) * rat
-            hgt_m = abs(ym(idx_y) - Yc(kC)) * 2;
-            wid_m = hgt_m * rat;
-        else
-            wid_m = abs(xm(idx_x) - Xc(kC)) * 2;
-            hgt_m = wid_m / rat;
-        end
-        mu(kC) = wid_m * hgt_m;
-    end
-
-    mu = reshape(mu, [num_y, num_x]);
-    map_spatial = alp .* map_spatial + (1-alp) .* mu;
-end
+% rat = lx/ly;
+% map_spatial = zeros(num_y, num_x);
+% for kS = 1:num_scans
+%     idx = min(kS, L);
+%     alp = (idx-1)/idx; % Compute alpha outside the loop
+% 
+%     xm = zClut{kS}(1,:);
+%     ym = zClut{kS}(2,:);
+% 
+%     mu = zeros(num_cells,1);
+%     for kC = 1:num_cells
+%         [~, idx_x] = min( abs(xm - Xc(kC)) );
+%         [~, idx_y] = min( abs(ym - Yc(kC)) );
+%         if abs(xm(idx_x) - Xc(kC)) < abs(ym(idx_y) - Yc(kC)) * rat
+%             hgt_m = abs(ym(idx_y) - Yc(kC)) * 2;
+%             wid_m = hgt_m * rat;
+%         else
+%             wid_m = abs(xm(idx_x) - Xc(kC)) * 2;
+%             hgt_m = wid_m / rat;
+%         end
+%         mu(kC) = wid_m * hgt_m;
+%     end
+% 
+%     mu = reshape(mu, [num_y, num_x]);
+%     map_spatial = alp .* map_spatial + (1-alp) .* mu;
+% end
 
 %% Temporal Clutter Map
 
@@ -150,11 +158,19 @@ ax.XTick = -Lx/2:lx:Lx/2;
 ax.YTick = -Ly/2:ly:Ly/2;
 
 figure('Position',[700,200,560,420])
-imagesc(xc,yc,1./map_spatial)
+imagesc(xc,yc,cm_obj.Map)
 colorbar
 axis xy
 ax = gca;
 ax.XTick = -Lx/2:lx:Lx/2;
 ax.YTick = -Ly/2:ly:Ly/2;
+
+% figure('Position',[700,200,560,420])
+% imagesc(xc,yc,1./map_spatial)
+% colorbar
+% axis xy
+% ax = gca;
+% ax.XTick = -Lx/2:lx:Lx/2;
+% ax.YTick = -Ly/2:ly:Ly/2;
 
 
