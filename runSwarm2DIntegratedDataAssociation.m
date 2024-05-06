@@ -89,7 +89,7 @@ rng(0)
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.995;
+PFT = 0.9995;
 
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
@@ -114,6 +114,13 @@ mmt_vol = prod(diff(mmt_space));
 %more likely than true tracks).
 lambda = lambdaV/mmt_vol;
 
+% Clutter estimation class (lambda equivalent)
+Lx = 2*maxRange; lx = 8*km;
+Ly = 2*maxRange; ly = 8*km;
+cm_obj = Tracker.ClutterEstimation("Type","Classical", ...
+    "AveragingLength", 5, "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
+    "CellSize", [lx,ly]);
+
 %The AlgSel parameters are inputs to the singleScanUpdate function.
 %Use the GNN-JIPDAF with approximate association probabilities.
 algSel1 = 3;
@@ -134,12 +141,6 @@ PTerminate = 1e-4;
 % Elliptical gate probability
 PG = 0.95;
 gammaVal = ChiSquareD.invCDF(PG,zDim);
-
-%Potential new tracks are started using one-point differencing. Usually,
-%this means that the velocity value is set to zero and one uses a
-%standard deviation value (in each dimension) based loosely on a standard
-%maximum velocity.
-velInitStdDev = 500;%(m/s)
 
 %% Generate Target Truth Data
 
@@ -202,7 +203,7 @@ motion_model_method = motion_model.Type;
 %% State Initialization
 init_methods = ["One-Point", "Two-Point", "Three-Point Heuristic"];
 state_init = Tracker.StateInitialization(...
-    "Type", "One-Point", "VelMax", Vmax, ...
+    "Type", "Two-Point", "VelMin", Vmin, "VelMax", Vmax, ...
     "StateDim", xDim, "SpaceDim", spaceDim, ...
     "MotionModelType", motion_model.Type);
 % State initialization method - see displayTracksSwarm.m
@@ -225,14 +226,14 @@ track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
 clear two_point_init
 for curScan = 1:numSamples
     tCur = tMeas{curScan};
-    zCur = zMeasCart{curScan};
+    zCurCart = zMeasCart{curScan};
     zPolCur = zMeasPol{curScan};
-    SRCur = SRMeasCart{curScan};
+    SRCurCart = SRMeasCart{curScan};
 
-    numMeas = size(zCur,2);
+    numMeas = size(zCurCart,2);
 
     % State initialization
-    [xNew, SNew] = state_init.Initialize(tCur, zCur, SRCur);
+    [xNew, SNew] = state_init.Initialize(tCur, zCurCart, SRCurCart);
     numStates = size(xNew, 2);
 
     %Initialization existence probabilities
@@ -273,13 +274,15 @@ for curScan = 1:numSamples
             % measJacobDets(curTar) = det(calcPolarConvJacob( ...
             %     zPolCur(:,curTar),0,true));
             measJacobDets(curMeas) = det(calcPolarJacob( ...
-                zCur(:,curMeas),0,true));
+                zCurCart(:,curMeas),0,true));
         end
 
         %The inclusion of r takes into account the track existence
         %probabilities.
-        [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCur,SRCur,[], ...
-            PD,lambda,r,gammaVal,measJacobDets);
+        cm_obj.ClutterMap(zCurCart, curScan);
+        lambda = cm_obj.Map(cm_obj.MmtIdx);
+        [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCurCart,SRCurCart,[], ...
+            PD,lambda,r,gammaVal,[]);
         
         [xUpdate,PUpdate,rUpdate,probNonTargetMeas] ...
             = singleScanUpdateWithExistence(xHyp,PHyp,PD,r,A, ...
