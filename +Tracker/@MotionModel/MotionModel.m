@@ -68,13 +68,14 @@ classdef MotionModel < handle
     end
 
     methods (Access = private)
-        % Make sure the type of motion model is avaialble
+        % Make sure the type of motion model is available
         function verify_type(obj)
             %METHOD1 Summary of this method goes here
             %   Detailed explanation goes here
             if ~contains(obj.expectedTypes, obj.Type)
-                str = sprintf('%s, %s, %s', obj.expectedTypes');
-                error('Wrong type. Input \"%s\" must be one of the \"%s\".', ...
+                strJ = strjoin(obj.expectedTypes,", ");
+                str = sprintf('%s', strJ);
+                error('Wrong type. Input Type \"%s\" must be one of \"%s\".', ...
                     obj.Type, str)
             end
         end
