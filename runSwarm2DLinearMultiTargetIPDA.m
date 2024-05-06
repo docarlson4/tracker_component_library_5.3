@@ -244,7 +244,7 @@ for curScan = 1:numSamples
 
     switch init_method
         case "One-Point"
-            [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim, zDim);
+            [xNew, SNew] = one_point_init(zCur, SRCur, Vmax, xDim);
         case "Two-Point"
             [xNew, SNew] = two_point_init(zCur, SRCur, tCur, vLims, xDim);
         otherwise
