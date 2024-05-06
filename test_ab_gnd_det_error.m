@@ -5,6 +5,7 @@ close all
 cd(fileparts(which(mfilename)))
 addpath c:\Users\dougo\OneDrive\Documents\MATLAB\
 Constants
+startup_tcl
 
 dbstop if error
 
