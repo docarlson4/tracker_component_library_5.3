@@ -83,8 +83,8 @@ disp('Setting parameters and creating the simulated trajectories.')
 
 zDim = 2;
 
-% rng("shuffle")
 rng(0)
+rng("shuffle")
 
 PD = 0.98;%Detection probability --same for all targets.
 
@@ -112,7 +112,7 @@ mmt_vol = prod(diff(mmt_space));
 %should note that lambda in the tracker cannot be arbitrarily large lest
 %the tracker eventually ignore all measurements (false alarms become always
 %more likely than true tracks).
-lambda = lambdaV/mmt_vol;
+lambda0 = lambdaV/mmt_vol;
 
 % Clutter estimation class (lambda equivalent)
 Lx = 2*maxRange; lx = 8*km;
@@ -151,10 +151,10 @@ Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
 vLims = [Vmin, Vmax];
-lam = 3;
+avgNumTgts = 3;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth, max_acc] = ...
-    genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, lam);
+    genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, avgNumTgts);
 numSamples = length(ZCartTrue);
 % maxAccel = max(max_acc);
 
@@ -329,6 +329,16 @@ for curScan = 1:numSamples
 end
 
 %% Plots
+
+% Estimated clutter map
+figure
+imagesc(cm_obj.Grid.x/km, cm_obj.Grid.y/km, cm_obj.Map)
+colorbar
+xlabel("\bfEast (km)")
+ylabel("\bfNorth (km)")
+title("\bf\fontsize{14}"+cm_obj.Type+" Clutter Map")
+
+% Tracks
 displayTracksSwarm
 
 %% LICENSE:
