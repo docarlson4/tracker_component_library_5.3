@@ -62,7 +62,10 @@ for curScan = 1:numSamples
         rClutBounds = mmt_space(:,1);%[minRange;maxRange];
         azBounds = mmt_space(:,2);%[-pi;pi];
         for curFalse = 1:numFalse
-            r = UniformD.rand(1,rClutBounds);
+            %r = UniformD.rand(1,rClutBounds);
+            xDim = size(rClutBounds,2);
+            r = (rClutBounds(2,:)-rClutBounds(1,:))' ...
+                .* rand(xDim, 1) + rClutBounds(1,:)';
             az = UniformD.rand(1,azBounds);
 
             zPolCur(:,curDet) = [r;az];
