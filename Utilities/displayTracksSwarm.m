@@ -12,6 +12,7 @@ ttl(2) = "\bf\fontsize{12}Moton Model: " + motion_model_method ...
 PDisp = 0.98;
 
 trackList = AVLTree();
+numDets = 0;
 for curScan = 1:numSamples
 
     % Plot truth data
@@ -22,6 +23,7 @@ for curScan = 1:numSamples
     
     % Plot measurements
     zCur = zMeasCart{curScan};
+    numDets = numDets + size(zCur, 2);
     if(~isempty(zCur))
         scatter(zCur(1,:)/km,zCur(2,:)/km,'ok');
     end
@@ -112,7 +114,9 @@ for kT = num_trx:-1:1
         lgcl_hp(kT) = true;
     end
 end
-legend(hp(lgcl_hp))
+if exist('hp','var')
+    legend(hp(lgcl_hp))
+end
 
 
 
