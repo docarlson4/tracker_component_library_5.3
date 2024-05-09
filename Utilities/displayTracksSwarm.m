@@ -83,32 +83,32 @@ for curScan = 1:numSamples
 end
 
 %% Plot Tracks 
-
+track_st_disp = track_st;
 % Filter minimum existence probability: PIsRealInit
-rCell = {track_st.r}';
+rCell = {track_st_disp.r}';
 lgcl_r = cellfun(@(x) any(x > 0.5), rCell, 'UniformOutput',false);
 lgcl_r = cell2mat(lgcl_r);
-track_st = track_st(lgcl_r);
+track_st_disp = track_st_disp(lgcl_r);
 % error("double check Filter minimum existence probability")
 
 % Filters minimum number of hits: num_hits
 min_hits = 15;
-num_hits = [track_st.num_hits]';
+num_hits = [track_st_disp.num_hits]';
 lgcl_hits = num_hits >= min_hits;
-track_st = track_st(lgcl_hits);
+track_st_disp = track_st_disp(lgcl_hits);
 
 % Plot remaining tracks
-num_trx = length(track_st);
+num_trx = length(track_st_disp);
 clrs = lines(num_trx);
 line_style = ["p-","*-","s-","v-","^-","d-"];
 lgcl_hp = false(1,num_trx);
 for kT = num_trx:-1:1
-    x  = track_st(kT).x(1,:);
-    y  = track_st(kT).x(2,:);
-    vx = track_st(kT).x(3,:);
-    vy = track_st(kT).x(4,:);
+    x  = track_st_disp(kT).x(1,:);
+    y  = track_st_disp(kT).x(2,:);
+    vx = track_st_disp(kT).x(3,:);
+    vy = track_st_disp(kT).x(4,:);
     if any(lgcl_r)
-        kL = floor((kT-1)/7)+1;
+        kL = mod(kT-1,6)+1;
         hp(kT) = plot(x/km,y/km,line_style(kL),'Color',clrs(kT,:), ...
             LineWidth=2, DisplayName="track "+num2str(kT));
         lgcl_hp(kT) = true;
@@ -118,5 +118,22 @@ if exist('hp','var')
     legend(hp(lgcl_hp))
 end
 
+%%
+figure
+hold on, grid on, box on
+for kT = num_trx:-1:1
+    vx = track_st_disp(kT).x(3,:);
+    vy = track_st_disp(kT).x(4,:);
+    avg_speed = mean(vecnorm(track_st_disp(kT).x(3:4,:)));
+    if any(lgcl_r)
+        kL = mod(kT-1,6)+1;
+        hp(kT) = plot(vx,vy,line_style(kL),'Color',clrs(kT,:), ...
+            LineWidth=2, DisplayName="Speed "+num2str(avg_speed));
+        lgcl_hp(kT) = true;
+    end
+end
+if exist('hp','var')
+    legend(hp(lgcl_hp))
+end
 
 
