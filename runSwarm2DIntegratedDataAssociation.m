@@ -84,12 +84,12 @@ disp('Setting parameters and creating the simulated trajectories.')
 zDim = 2;
 
 rng(0)
-rng("shuffle")
+% rng("shuffle")
 
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.9995;
+PFT = 0.49995;
 
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
@@ -235,6 +235,9 @@ for curScan = 1:numSamples
     % State initialization
     [xNew, SNew] = state_init.Initialize(tCur, zCurCart, SRCurCart);
     numStates = size(xNew, 2);
+
+    fprintf("Scan No. %d\n", curScan)
+    fprintf("Mmts: %d, States: %d\n", numMeas, numStates)
 
     %Initialization existence probabilities
     rNew = PIsRealInit*ones(1,numStates);
