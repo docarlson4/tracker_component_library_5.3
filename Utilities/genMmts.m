@@ -19,6 +19,12 @@ function [zMeasCart, SRMeasCart,tMeas, zMeasPol] = genMmts( ...
 %%
 maxRange = mmt_space(2,1);
 
+% Stationary clutter
+km = 1e3;
+numStnry = 20;
+rs = 0*km + 5*km * sqrt(rand(1,numStnry));
+azs = rand(1,numStnry) * 2*pi;
+
 %Cubature points for measurement conversion.
 zDim = size(SR,1);
 [xi,w] = fifthOrderCubPoints(zDim);
@@ -68,22 +74,22 @@ for curScan = 1:numSamples
                 .* rand(xDim, 1) + rClutBounds(1,:)';
             az = UniformD.rand(1,azBounds);
 
-            zPolCur(:,curDet) = [r;az];
+            zPolCur(:,curDet) = [r; az];
             curDet = curDet+1;
         end
             
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        zMeasPol{curScan} = zPolCur;
-        [zMeasCart{curScan},RMeasCart] = pol2CartCubature(zPolCur,SR,0,true, ...
-            [],[],[],xi,w);
+        zMeasPol{curScan} = [zPolCur, [rs;azs]];
+        [zMeasCart{curScan},RMeasCart] = pol2CartCubature( ...
+            zMeasPol{curScan},SR,0,true,[],[],[],xi,w);
         
         %Take the lower-triangular square root of the covariance matrices.
-        for curMeas = 1:numMeas
+        for curMeas = 1:numMeas + numStnry
             RMeasCart(:,:,curMeas) = chol(RMeasCart(:,:,curMeas),'lower');
         end
         SRMeasCart{curScan} = RMeasCart;
-        tMeas{curScan} = repmat((curScan-1)*Ts, 1, numMeas);
+        tMeas{curScan} = repmat((curScan-1)*Ts, 1, numMeas + numStnry);
     end
 end
 
