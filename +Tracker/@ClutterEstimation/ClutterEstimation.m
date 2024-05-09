@@ -68,8 +68,13 @@ classdef ClutterEstimation < handle
             alp = (idx-1)/idx; % Compute alpha outside the loop
             lx = obj.CellSize(1);
             ly = obj.CellSize(2);
-            lgcl_x = abs(bsxfun(@minus, zClut(1,:), obj.Xc(:))) < lx/2;
-            lgcl_y = abs(bsxfun(@minus, zClut(2,:), obj.Yc(:))) < ly/2;
+            if isempty(zClut)
+                lgcl_x = false(obj.numCells,1);
+                lgcl_y = false(obj.numCells,1);
+            else
+                lgcl_x = abs(bsxfun(@minus, zClut(1,:), obj.Xc(:))) < lx/2;
+                lgcl_y = abs(bsxfun(@minus, zClut(2,:), obj.Yc(:))) < ly/2;
+            end
             lgcl_xy = lgcl_y & lgcl_x; 
             mu = sum(lgcl_xy, 2); % Sum over the second dimension
             [obj.MmtIdx,~] = find(lgcl_xy);
