@@ -54,7 +54,7 @@ for curScan = 1:numSamples
     zPolCur = zeros(2,numMeas);
     curDet = 1;
 
-    if(numMeas>0)
+    if(numMeas>=0)
         %Generate the detection from the targets, if any.
         for curTar = 1:numTargets
             if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) <= maxRange)
