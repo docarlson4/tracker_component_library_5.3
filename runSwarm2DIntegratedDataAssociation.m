@@ -89,7 +89,7 @@ rng(0)
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.49995;
+PFT = 0.95;
 
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
@@ -115,10 +115,10 @@ mmt_vol = prod(diff(mmt_space));
 lambda0 = lambdaV/mmt_vol;
 
 % Clutter estimation class (lambda equivalent)
-Lx = 2*maxRange; lx = 8*km;
-Ly = 2*maxRange; ly = 8*km;
+Lx = 2*maxRange; lx = 1*km;
+Ly = 2*maxRange; ly = 1*km;
 cm_obj = Tracker.ClutterEstimation("Type","Classical", ...
-    "AveragingLength", 5, "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
+    "AveragingLength", 25, "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
     "CellSize", [lx,ly]);
 
 %The AlgSel parameters are inputs to the singleScanUpdate function.
@@ -334,12 +334,7 @@ end
 %% Plots
 
 % Estimated clutter map
-figure
-imagesc(cm_obj.Grid.x/km, cm_obj.Grid.y/km, cm_obj.Map)
-colorbar
-xlabel("\bfEast (km)")
-ylabel("\bfNorth (km)")
-title("\bf\fontsize{14}"+cm_obj.Type+" Clutter Map")
+cm_obj.PlotCLutterMap
 
 % Tracks
 displayTracksSwarm
