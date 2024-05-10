@@ -58,7 +58,17 @@ classdef ClutterEstimation < handle
                     warning("Defaulting to Classical clutter map method")
             end
         end
-        
+
+        function PlotClutterMap(obj)
+            figure
+            km = 1e3;
+            imagesc(obj.Grid.x/km, obj.Grid.y/km, obj.Map)
+            colorbar
+            xlabel("\bfEast (km)")
+            ylabel("\bfNorth (km)")
+            title("\bf\fontsize{14}"+obj.Type+" Clutter Map")
+            axis square xy
+        end
     end
 
     methods (Access = private)
