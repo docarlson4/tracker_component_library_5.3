@@ -89,7 +89,7 @@ rng(0)
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.95;
+PFT = 0.495;
 
 %lambda times the "volume" in the receiver's polar coordinate system needed
 %for the Poisson clutter model
@@ -334,7 +334,7 @@ end
 %% Plots
 
 % Estimated clutter map
-cm_obj.PlotCLutterMap
+cm_obj.PlotClutterMap
 
 % Tracks
 displayTracksSwarm
