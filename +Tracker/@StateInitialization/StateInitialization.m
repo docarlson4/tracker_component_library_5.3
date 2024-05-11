@@ -2,7 +2,7 @@ classdef StateInitialization < handle
     %STATEINITIALIZATION Handles various forms of state initialization
     
     properties(Access=private)
-        expectedTypes = ["One-Point", "Two-Point"];
+        expectedTypes = ["One-Point", "Two-Point", "Three-Point"];
         motionModelTypes = ["NCV", "NCA", "GMV"]
     end
     properties
@@ -42,6 +42,7 @@ classdef StateInitialization < handle
             
             obj = init(obj);
             clear TwoPoint
+            clear ThreePoint
         end
 
         function [xNew, SNew] = Initialize(obj, tCur, zCur, SRCur)
@@ -50,6 +51,8 @@ classdef StateInitialization < handle
                     [xNew, SNew] = OnePoint(obj, zCur, SRCur);
                 case "Two-Point"
                     [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur);
+                case "Three-Point"
+                    [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur);
             end
         end
     end
@@ -57,6 +60,7 @@ classdef StateInitialization < handle
     methods (Access = private)
         [xNew, SNew] = OnePoint(obj, zCur, SRCur)
         [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
+        [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur)
     end
 end
 
