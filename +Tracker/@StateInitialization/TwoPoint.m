@@ -1,18 +1,19 @@
 function [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
-%TWO_POINT_INIT Summary of this function goes here
-%   Detailed explanation goes here
+%TWO_POINT_INIT Two-point state and lower Cholesky decomposed covariance
+%initialization for arbitrary spatial dimensions D
 %
 % INPUT
-%
+%   tCur - mmt time stamp (1 X N)
+%   zCur - mmt vectors (D X N)
+%   SRCur - mmt covariances (D X D X N)
 %
 % OUTPUT
-%
+%   xNew - state vectors
+%   SNew - state lower Cholesky decomposed covariance
 %
 % USAGE
-%
-%
+%   [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
 
-% Developed in Matlab 9.12.0.2529717 (R2022a) Update 8 on PCWIN64.
 % Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2024-03-23 20:45
 
 %%
@@ -46,39 +47,34 @@ if numMeas > 0
     tBuf{kBuf} = tCur;
     if kBuf == 2
         % Generate initial state
-        t1 = tBuf{1}(1,:);
-        x1 = zBuf{1}(1,:);
-        y1 = zBuf{1}(2,:);
+        t1 = tBuf{1}(1,:); N1 = length(t1);
+        t2 = tBuf{2}(1,:); N2 = length(t2);
+        del_t(1,:,:) = t2' - t1;
 
-        t2 = tBuf{2}(1,:);
-        x2 = zBuf{2}(1,:);
-        y2 = zBuf{2}(2,:);
+        % Mmts: D X N2 X N1, D - spatial dimension
+        z1 = permute(repmat(zBuf{1},[1,1,N2]),[1,3,2]);
+        z2 = repmat(zBuf{2},[1,1,N1]);
+        del_z = z2 - z1;
 
-        del_t = t2' - t1;
-        del_x = x2' - x1;
-        del_y = y2' - y1;
-        vx = del_x./del_t;
-        vy = del_y./del_t;
-        v = sqrt(vx.*vx + vy.*vy);
+        % Velocity and speed
+        v = bsxfun(@rdivide,del_z,repmat(del_t,[2,1,1]));
+        vMag = sqrt(squeeze(sum(v.*v,1)));
 
-        lgcl_v = (vLims(1) < v) & (v < vLims(2));
-
-        [i2,i1] = find(lgcl_v);
+        % Apply speed limits
+        lgcl_vMag = (vLims(1) < vMag) & (vMag < vLims(2));
+        [i2,i1] = find(lgcl_vMag);
         
         % State vector
-        sx = x2(i2);
-        sy = y2(i2);
-        svx = zeros(size(sx));
-        svy = zeros(size(sy));
+        sp = z2(:,i2);
+        sv = zeros(size(sp));
         for k = 1:length(i1)
-            svx(k) = vx(i2(k),i1(k));
-            svy(k) = vy(i2(k),i1(k));
+            sv(:,k) = v(:,i2(k),i1(k));
         end
-        xNew = [sx;sy;svx;svy];
+        xNew = [sp;sv];
 
         % State covariance
         for k = 1:length(i1)
-            T = del_t(i2(k),i1(k));
+            T = del_t(1,i2(k),i1(k));
             S22 = SBuf{1}(:,:,i1(k))/T;
             SNew(:,:,k) = [
                 SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
