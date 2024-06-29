@@ -51,7 +51,7 @@ classdef RadarReceiver < handle
             DEFAULT.Beamwidth = 2*obj.deg;
             DEFAULT.NumPulse = 20;
             DEFAULT.SNRdB = 10;
-            DEFAULT.PRI = 300*obj.us;
+            DEFAULT.PRF = 3*obj.kHz;
             DEFAULT.FrameTime = 2;
 
             p = inputParser;
