@@ -14,23 +14,25 @@ classdef MotionModel < handle
     end
     properties
         Type        % input ["NCV","NCA","2DCT","GMV"]
-        StateDim    % input xDim
         SpaceDim    % input
         RevisitTime % input sample time
         MaxKinVar   % input NCV, GMV: maxAcc, NCA: maxJrk
         Tau         % input GMV: decorrelation time (s)
 
+        StateDim
         Q  % state process noise covariance (ns X ns)
         SQ % Cholesky decomposition of Q (ns X ns)
         F  % state propagator matrix (ns X ns)
         f  % state propagator function handel f = @(s) F*s
     end
 
+    properties(Dependent)
+    end
+
     methods
         function obj = MotionModel(varargin)
             %MOTIONMODEL Construct an instance of this class
             DEFAULT.Type = "NCV";
-            DEFAULT.StateDim = 6;
             DEFAULT.SpaceDim = 3;
             DEFAULT.RevisitTime = 1;
             DEFAULT.MaxKinVar = 9.8; % 1 g
@@ -86,6 +88,7 @@ classdef MotionModel < handle
             switch obj.Type
                 case "NCV"
                     order = 1;
+                    obj.StateDim = (order+1)*obj.SpaceDim;
                     % Process noise
                     q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
                         obj.RevisitTime);
@@ -99,6 +102,7 @@ classdef MotionModel < handle
                     obj.f = @(x) obj.F*x;
                 case "NCA"
                     order = 2;
+                    obj.StateDim = (order+1)*obj.SpaceDim;
                     % Process noise
                     q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
                         obj.RevisitTime);
@@ -115,6 +119,7 @@ classdef MotionModel < handle
                     %Parameters for the dynamic model. We are using a first-order Gauss-Markov
                     %model.
                     order = 1;
+                    obj.StateDim = (order+1)*obj.SpaceDim;
                     %Rule-of-thumb process noise suggestion.
                     q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
                         obj.RevisitTime);
