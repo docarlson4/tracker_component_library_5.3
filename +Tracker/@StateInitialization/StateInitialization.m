@@ -4,29 +4,28 @@ classdef StateInitialization < handle
     properties(Access=private)
         expectedTypes = ["One-Point", "Two-Point", "Three-Point"];
         motionModelTypes = ["NCV", "NCA", "GMV"]
+        stateDim
     end
     properties
         Type        % input ["One-Point", "Two-Point"]
-        StateDim    % input xDim
         SpaceDim    % input
         VelMin
         VelMax
         AccMax
         JrkMax
-        MotionModelType
+        MotionModelObject
     end
     
     methods
         function obj = StateInitialization(varargin)
             % STATEINITIALIZATION
             DEFAULT.Type = "One-Point";
-            DEFAULT.StateDim = 6;
             DEFAULT.SpaceDim = 3;
             DEFAULT.VelMin = 0;
             DEFAULT.VelMax = 100;
             DEFAULT.AccMax = 10;
             DEFAULT.JrkMax = 1;
-            DEFAULT.MotionModelType = "NCV";
+            DEFAULT.MotionModelObject = "NCV";
 
             p = inputParser;
 
@@ -45,22 +44,22 @@ classdef StateInitialization < handle
             clear ThreePoint
         end
 
-        function [xNew, SNew] = Initialize(obj, tCur, zCur, SRCur)
+        function [xNew, SNew, lgclNew] = Initialize(obj, tCur, zCur, SRCur)
             switch obj.Type
                 case "One-Point"
-                    [xNew, SNew] = OnePoint(obj, zCur, SRCur);
+                    [xNew, SNew, lgclNew] = OnePoint(obj, zCur, SRCur);
                 case "Two-Point"
-                    [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur);
+                    [xNew, SNew, lgclNew] = TwoPoint(obj, tCur, zCur, SRCur);
                 case "Three-Point"
-                    [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur);
+                    [xNew, SNew, lgclNew] = ThreePoint(obj, tCur, zCur, SRCur);
             end
         end
     end
 
     methods (Access = private)
-        [xNew, SNew] = OnePoint(obj, zCur, SRCur)
-        [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
-        [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur)
+        [xNew, SNew, lgclNew] = OnePoint(obj, zCur, SRCur)
+        [xNew, SNew, lgclNew] = TwoPoint(obj, tCur, zCur, SRCur)
+        [xNew, SNew, lgclNew] = ThreePoint(obj, tCur, zCur, SRCur)
     end
 end
 
@@ -69,8 +68,9 @@ function obj = init(obj)
 if ~any(contains(obj.Type, obj.expectedTypes))
     error("Wrong Type. Expected " + strjoin(obj.expectedTypes, ", "))
 end
-if ~any(contains(obj.MotionModelType, obj.motionModelTypes ))
-    error("Wrong MotionModelType. Expected " ...
+if ~any(contains(obj.MotionModelObject.Type, obj.motionModelTypes ))
+    error("Wrong MotionModelObject. Expected " ...
         + strjoin(obj.motionModelTypes, ", "))
 end
+obj.stateDim = obj.MotionModelObject.StateDim;
 end
