@@ -1,5 +1,5 @@
 function [zMeasCart, SRMeasCart,tMeas, zMeasPol] = genMmts( ...
-    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts)
+    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, AmbRR)
 %GENMMTS Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -16,14 +16,21 @@ function [zMeasCart, SRMeasCart,tMeas, zMeasPol] = genMmts( ...
 % Developed in Matlab 9.12.0.2529717 (R2022a) Update 8 on PCWIN64.
 % Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2024-03-23 18:44
 
+if nargin < 8
+    AmbRR = 299792458;
+end
+
 %%
 maxRange = mmt_space(2,1);
 
 % Stationary clutter
 km = 1e3;
-numStnry = 0;
+numStnry = 50;
 rs = 0*km + 5*km * sqrt(rand(1,numStnry));
 azs = rand(1,numStnry) * 2*pi;
+rrs = 0.1*randn(1,numStnry);
+% Compute the wrapped range-rate values
+rrs = mod(rrs + AmbRR/2, AmbRR) - AmbRR/2;
 
 %Cubature points for measurement conversion.
 zDim = size(SR,1);
@@ -60,6 +67,8 @@ for curScan = 1:numSamples
             if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) <= maxRange)
                 zPolCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
                     + SR*randn(zDim,1);
+                % Compute the wrapped range-rate values
+                zPolCur(3,curDet) = mod(zPolCur(3,curDet) + AmbRR/2, AmbRR) - AmbRR/2;
                 curDet = curDet+1;
             end
         end
@@ -75,6 +84,8 @@ for curScan = 1:numSamples
                 .* rand(xDim, 1) + rClutBounds(1,:)';
             az = UniformD.rand(1,azBounds);
             rr = UniformD.rand(1,rrBounds);
+            % Compute the wrapped range-rate values
+            rr = mod(rr + AmbRR/2, AmbRR) - AmbRR/2;
 
             zPolCur(:,curDet) = [r; az; rr];
             curDet = curDet+1;
@@ -82,7 +93,7 @@ for curScan = 1:numSamples
             
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        zMeasPol{curScan} = [zPolCur, [rs;azs]];
+        zMeasPol{curScan} = [zPolCur, [rs;azs;rrs]];
         [zMeasCart{curScan},RMeasCart] = pol2CartCubature( ...
             zMeasPol{curScan}(1:2,:),SR(1:2,1:2),0,true,[],[],[],xi,w);
         
