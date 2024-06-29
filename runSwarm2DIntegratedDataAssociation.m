@@ -66,7 +66,7 @@
 
 clc
 clearvars
-% close all
+close all
 
 startup_tcl
 
@@ -77,6 +77,15 @@ dbstop if error
 km = 1e3;
 
 disp('An example of a simple Kalman filter with Gauss-Markov model, data association, and track initiation/ termination in 2D') 
+
+%% Radar Parameters
+radar_obj = RadarReceiver( ...
+    "Frametime", 2, ...
+    "Bandwidth", 2*MHz, ...
+    "NumPulse", 10, ...
+    "SNRdB", 10)
+
+% radar_obj.PlotUnfoldingProb
 
 %% Model Setup
 disp('Setting parameters and creating the simulated trajectories.') 
@@ -89,37 +98,28 @@ rng(0)
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.495;
-
-%lambda times the "volume" in the receiver's polar coordinate system needed
-%for the Poisson clutter model
-lambdaV = -log( 1 - PFT );
-% lambdaV = 2;
+PFT = 0.995;
 
 %The viewing region range. This is important for dealing with the clutter
 %model.
 minRange = 1e3;
-maxRange = 40e3;
+maxRange = radar_obj.RangeAmb;
 %The angular region is two pi (all around).
-mmt_space = [minRange -pi; maxRange, pi];
+mmt_space = [
+    minRange -pi -radar_obj.RangeRateAmb
+    maxRange  pi  radar_obj.RangeRateAmb];
 % Measurement volume
 mmt_vol = prod(diff(mmt_space));
-
-%Assumed clutter parameter in terms of false alarms per meter-radian
-%(polar coordinates). False alarms are generated in the measurement
-%domain of the radar. The tracker can still work if the value for lambda
-%does not perfectly match the value simulated/ the real value. However, one
-%should note that lambda in the tracker cannot be arbitrarily large lest
-%the tracker eventually ignore all measurements (false alarms become always
-%more likely than true tracks).
-lambda0 = lambdaV/mmt_vol;
 
 % Clutter estimation class (lambda equivalent)
 Lx = 2*maxRange; lx = 1*km;
 Ly = 2*maxRange; ly = 1*km;
-cm_obj = Tracker.ClutterEstimation("Type","Classical", ...
-    "AveragingLength", 25, "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
-    "CellSize", [lx,ly]);
+cm_obj = Tracker.ClutterEstimation( ...
+    "Type","Classical", ...
+    "AveragingLength", 25, ...
+    "MmtRegion", [-Lx/2, -Ly/2; Lx/2, Ly/2], ...
+    "CellSize", [lx,ly], ...
+    "ClutterFloor", 1e-9);
 
 %The AlgSel parameters are inputs to the singleScanUpdate function.
 %Use the GNN-JIPDAF with approximate association probabilities.
@@ -161,11 +161,16 @@ numSamples = length(ZCartTrue);
 %% Generate Measurements
 disp('Generating measurements.') 
 
+%lambda times the "volume" in the receiver's polar coordinate system needed
+%for the Poisson clutter model
+lambdaV = -log( 1 - PFT );
+
 %Assumed standard deviations of the measurement noise components.
-sigmaR = 10;
-sigmaAz = 0.1*deg;
+sigmaR = radar_obj.RangeUnc;
+sigmaAz = radar_obj.AzimuthUnc;
+sigmaRr = radar_obj.RangeRateUnc;
 %Square root measurement covariance matrix; assume no correlation.
-SR = diag([sigmaR,sigmaAz]);
+SR = diag([sigmaR,sigmaAz,sigmaRr]);
 
 [zMeasCart, SRMeasCart, tMeas, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts);
@@ -189,23 +194,26 @@ motion_models = [
 %   GMV: xDim = 4
 %   - maximum acceleration: maxAcc (m/s/s)
 %   - maneuver decorrelation time: tau (s)
-maxAcc = 9.8*2; % in g's
+maxAcc = 9.8; % in m/s/s
 maxJrk = 0.1;
 tau = 25*Ts;   % maneuver decorrelation time (s)
-xDim = 4;
 motion_model = Tracker.MotionModel( ...
-    "Type", "GMV", "StateDim", xDim, ...
-    "SpaceDim", spaceDim, "RevisitTime", Ts, ...
-    "MaxKinVar", maxAcc, "Tau", tau);
+    "Type", "NCV", ...
+    "SpaceDim", spaceDim, ...
+    "RevisitTime", Ts, ...
+    "MaxKinVar", maxAcc, ...
+    "Tau", tau);
 % State motion model method - see displayTracksSwarm.m
 motion_model_method = motion_model.Type;
 
 %% State Initialization
 init_methods = ["One-Point", "Two-Point", "Three-Point"];
-state_init = Tracker.StateInitialization(...
-    "Type", "Three-Point", "VelMin", Vmin, "VelMax", Vmax, ...
-    "StateDim", xDim, "SpaceDim", spaceDim, ...
-    "MotionModelType", motion_model.Type);
+state_init = Tracker.StateInitialization( ...
+    "Type", "Two-Point", ...
+    "VelMin", Vmin, ...
+    "VelMax", Vmax, ...
+    "SpaceDim", spaceDim, ...
+    "MotionModel", motion_model);
 % State initialization method - see displayTracksSwarm.m
 init_method = state_init.Type;
 
@@ -233,8 +241,10 @@ for curScan = 1:numSamples
     numMeas = size(zCurCart,2);
 
     % State initialization
-    [xNew, SNew] = state_init.Initialize(tCur, zCurCart, SRCurCart);
+    [xNew, SNew, lgclNew] = state_init.Initialize(tCur, zCurCart, SRCurCart);
     numStates = size(xNew, 2);
+
+    cm_obj.ClutterMap(zCurCart(:,~lgclNew), curScan);
 
     fprintf("Scan No. %d\n", curScan)
     fprintf("Mmts: %d, States: %d\n", numMeas, numStates)
@@ -282,8 +292,7 @@ for curScan = 1:numSamples
 
         %The inclusion of r takes into account the track existence
         %probabilities.
-        cm_obj.ClutterMap(zCurCart, curScan);
-        lambda = cm_obj.Map(cm_obj.MmtIdx);
+        lambda = cm_obj.GetLambda(zCurCart);
         [A,xHyp,PHyp] = makeStandardCartOnlyLRMatHyps(x,S,zCurCart,SRCurCart,[], ...
             PD,lambda,r,gammaVal,[]);
         
