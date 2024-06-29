@@ -68,15 +68,17 @@ x0 = [pos;vel;w];
 for kT = 1:num_tgt
     xCart{kT} = x0(:,kT);
     xPol{kT} = [
-        vecnorm( xCart{kT}(1:2,1) );
-        atan2( xCart{kT}(1,1), xCart{kT}(2,1) )];
+        vecnorm( xCart{kT}(1:2,1) )
+        atan2( xCart{kT}(1,1), xCart{kT}(2,1) )
+        getRangeRate(xCart{kT}(1:4,1),true)];
     for kLT = 2:num_lt(kT)
         xCart{kT}(:,kLT) = f( xCart{kT}(:,kLT-1) );
         xDot{kT}(:,kLT) = (xCart{kT}(:,kLT) - xCart{kT}(:,kLT-1))/Ts;
 
         xPol{kT} = [xPol{kT}, [
-            vecnorm( xCart{kT}(1:2,kLT) );
-            atan2( xCart{kT}(1,kLT), xCart{kT}(2,kLT) )]];
+            vecnorm( xCart{kT}(1:2,kLT) )
+            atan2( xCart{kT}(1,kLT), xCart{kT}(2,kLT) )
+            getRangeRate(xCart{kT}(1:4,kLT),true)] ];
     end
 end
 
