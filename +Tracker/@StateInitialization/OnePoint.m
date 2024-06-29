@@ -1,4 +1,4 @@
-function [xNew, SNew] = OnePoint(obj, zCur, SRCur)
+function [xNew, SNew, lgclNew] = OnePoint(obj, zCur, SRCur)
 %ONE_POINT_INIT Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -18,7 +18,7 @@ function [xNew, SNew] = OnePoint(obj, zCur, SRCur)
 %%
 Vmax = obj.VelMax;
 Amax = obj.AccMax;
-xDim = obj.StateDim;
+xDim = obj.MotionModelObject.StateDim;
 spaceDim = obj.SpaceDim;
 [zDim, numMeas] = size(zCur);
 idxPos = 1:spaceDim;
@@ -28,13 +28,14 @@ idxAcc = (idxVel) + spaceDim;
 %First, we create potential tracks for all of the observations.
 xNew = zeros(xDim,numMeas);
 SNew = zeros(xDim,xDim,numMeas);
+lgclNew = true(1, numMeas);
 xNew(1:zDim,:) = zCur;
 SNew(1:zDim,1:zDim,:) = SRCur;
 %The uncertainty for the unknown velocity
 for curDim = idxVel
     SNew(curDim,curDim,:) = Vmax/sqrt(2+zDim);
 end
-if obj.MotionModelType == "NCA"
+if obj.MotionModelObject.Type == "NCA"
     for curDim = idxAcc
         SNew(curDim,curDim,:) = Amax/sqrt(2+zDim);
     end

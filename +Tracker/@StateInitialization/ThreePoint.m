@@ -77,7 +77,7 @@ if numMeas > 0
             del_z21 = z2(:,k2) - z1(:,i1);
             mag_z21 = vecnorm(del_z21);
             cos_phi = (dot(del_z32,del_z21)./(mag_z32.*mag_z21 + eps));
-            lgcl_phi = cos_phi > cos_phi0
+            lgcl_phi = cos_phi > cos_phi0;
         end
         
         % State vector

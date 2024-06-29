@@ -1,4 +1,4 @@
-function [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
+function [xNew, SNew, lgclNew] = TwoPoint(obj, tCur, zCur, SRCur)
 %TWO_POINT_INIT Two-point state and lower Cholesky decomposed covariance
 %initialization for arbitrary spatial dimensions D
 %
@@ -21,7 +21,7 @@ function [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
 persistent kBuf zBuf SBuf tBuf
 
 vLims = [obj.VelMin, obj.VelMax];
-xDim = obj.StateDim;
+xDim = obj.MotionModelObject.StateDim;
 [zDim, numMeas] = size(zCur);
 
 if isempty(kBuf)
@@ -33,6 +33,7 @@ end
 
 xNew = zeros(xDim,0);
 SNew = zeros(xDim,xDim,0);
+lgclNew = zeros(1,0);
 
 if isscalar(tCur)
     tCur = tCur*ones(1,numMeas);
@@ -61,25 +62,45 @@ if numMeas > 0
         vMag = sqrt(squeeze(sum(v.*v,1)));
 
         % Apply speed limits
-        lgcl_vMag = (vLims(1) < vMag) & (vMag < vLims(2));
-        [i2,i1] = find(lgcl_vMag);
+        lgclVlim = (vLims(1) < vMag) & (vMag < vLims(2));
+        [i2,i1] = find(lgclVlim);
         
+        if length(unique(i2)) < length(i2)
+            disp("length(unique(i2)) < length(i2)")
+        end
+
         % State vector
         sp = z2(:,i2);
         sv = zeros(size(sp));
         for k = 1:length(i1)
             sv(:,k) = v(:,i2(k),i1(k));
         end
-        xNew = [sp;sv];
+        if obj.MotionModelObject.Type == "NCA"
+            xNew = [sp;sv;zeros(size(sp))];
+        else
+            xNew = [sp;sv];
+        end
 
         % State covariance
         for k = 1:length(i1)
             T = del_t(1,i2(k),i1(k));
             S22 = SBuf{1}(:,:,i1(k))/T;
-            SNew(:,:,k) = [
-                SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
-                SBuf{2}(:,:,i2(k))/T, S22];
+            if obj.MotionModelObject.Type == "NCA"
+                acc = obj.MotionModelObject.MaxKinVar ...
+                    / sqrt(2 + zDim);
+                SNew(:,:,k) = blkdiag([
+                    SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
+                    SBuf{2}(:,:,i2(k))/T, S22], ...
+                    acc * eye(obj.SpaceDim));
+            else
+                SNew(:,:,k) = [
+                    SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
+                    SBuf{2}(:,:,i2(k))/T, S22];
+            end
         end
+
+        lgclNew = false(1,numMeas);
+        lgclNew(i2) = true;
 
         % Reset zBuf for next mmt
         zBuf{1} = zBuf{2};

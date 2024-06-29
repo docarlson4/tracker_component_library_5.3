@@ -1,7 +1,7 @@
 classdef ClutterEstimation < handle
     %CLUTTERESTIMATION Summary of this class goes here
     %   Detailed explanation goes here
-    
+
     properties (Access = private)
         expectedTypes = ["Classical","Spatial","Temporal"]
         xc, yc, num_x, num_y, Xc, Yc, numCells
@@ -11,12 +11,13 @@ classdef ClutterEstimation < handle
         AveragingLength % input: Number of scans to estimate map
         MmtRegion       % input: [[xMin;xMax], [yMin;yMax], ...] 2xNumDim (m)
         CellSize        % input: [delX, delY, ...] 1xNumDim (m)
+        ClutterFloor
 
-        Map     % output: 
-        Grid    % output: 
-        MmtIdx  % output: 
+        Map     % output:
+        Grid    % output:
+        MmtIdx  % output:
     end
-    
+
     methods
         function obj = ClutterEstimation(varargin)
             %CLUTTERESTIMATION Construct an instance of this class
@@ -25,6 +26,7 @@ classdef ClutterEstimation < handle
             DEFAULT.AveragingLength = 20;
             DEFAULT.MmtRegion = [[-40;40],[-40;40]]*1e3;
             DEFAULT.CellSize = [2,2]*1e3;
+            DEFAULT.ClutterFloor = 1e-9;
             p = inputParser;
 
             cellfun( @(fn) p.addOptional( fn, DEFAULT.(fn) ), ...
@@ -36,7 +38,7 @@ classdef ClutterEstimation < handle
             for k = 1:numel(param_names)
                 obj.(param_names{k}) = p.Results.(param_names{k});
             end
-            
+
             % Make sure the type of motion model is avaialble
             verify_type(obj)
 
@@ -44,7 +46,7 @@ classdef ClutterEstimation < handle
             % to type
             obj = update_clutter_model(obj);
         end
-        
+
         function obj = ClutterMap(obj, zClut, curScan)
             %ClutterMap Update clutter map with chosen Type
             switch obj.Type
@@ -56,6 +58,20 @@ classdef ClutterEstimation < handle
                     error("Temporal clutter map not implemented yet")
                 otherwise
                     warning("Defaulting to Classical clutter map method")
+            end
+        end
+
+        function lam = GetLambda(obj, zClut)
+            if isempty(zClut)
+                lam = [];
+            else
+                lx = obj.CellSize(1);
+                ly = obj.CellSize(2);
+                lgcl_x = abs(bsxfun(@minus, zClut(1,:), obj.Xc(:))) < lx/2;
+                lgcl_y = abs(bsxfun(@minus, zClut(2,:), obj.Yc(:))) < ly/2;
+                lgcl_xy = lgcl_y & lgcl_x;
+                [idx,~] = find(lgcl_xy);
+                lam = obj.Map(idx);
             end
         end
 
@@ -85,9 +101,10 @@ classdef ClutterEstimation < handle
                 lgcl_x = abs(bsxfun(@minus, zClut(1,:), obj.Xc(:))) < lx/2;
                 lgcl_y = abs(bsxfun(@minus, zClut(2,:), obj.Yc(:))) < ly/2;
             end
-            lgcl_xy = lgcl_y & lgcl_x; 
-            mu = sum(lgcl_xy, 2); % Sum over the second dimension
+            lgcl_xy = lgcl_y & lgcl_x;
             [obj.MmtIdx,~] = find(lgcl_xy);
+            % Sum over the second dimension
+            mu = max( sum(lgcl_xy, 2), lx*ly*obj.ClutterFloor);
             mu = reshape(mu, [obj.num_y, obj.num_x]);
             map = alp .* map + (1-alp) .* mu/(lx*ly);%sqrt(lx*lx + ly*ly);
         end
@@ -118,7 +135,7 @@ classdef ClutterEstimation < handle
             switch obj.Type
                 case "Classical"
                     obj.Map = zeros(obj.num_y, obj.num_x) ...
-                        + 1e-19;%*prod(obj.CellSize);
+                        + obj.ClutterFloor;
                 case "Spatial"
                     error("Spatial clutter map not implemented yet")
                 case "Temporal"
@@ -127,6 +144,6 @@ classdef ClutterEstimation < handle
                     warning("Defaulting to Classical clutter map method")
             end
         end
-    end    
+    end
 end
 
