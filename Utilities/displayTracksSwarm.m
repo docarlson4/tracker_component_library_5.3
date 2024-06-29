@@ -119,21 +119,22 @@ if exist('hp','var')
 end
 
 %%
-figure
-hold on, grid on, box on
-for kT = num_trx:-1:1
-    vx = track_st_disp(kT).x(3,:);
-    vy = track_st_disp(kT).x(4,:);
-    avg_speed = mean(vecnorm(track_st_disp(kT).x(3:4,:)));
-    if any(lgcl_r)
-        kL = mod(kT-1,6)+1;
-        hp(kT) = plot(vx,vy,line_style(kL),'Color',clrs(kT,:), ...
-            LineWidth=2, DisplayName="Speed "+num2str(avg_speed));
-        lgcl_hp(kT) = true;
+if num_trx > 0
+    figure
+    hold on, grid on, box on
+    for kT = num_trx:-1:1
+        vx = track_st_disp(kT).x(3,:);
+        vy = track_st_disp(kT).x(4,:);
+        avg_speed = mean(vecnorm(track_st_disp(kT).x(3:4,:)));
+        if any(lgcl_r)
+            kL = mod(kT-1,6)+1;
+            hp(kT) = plot(vx,vy,line_style(kL),'Color',clrs(kT,:), ...
+                LineWidth=2, DisplayName="Speed "+num2str(avg_speed));
+            lgcl_hp(kT) = true;
+        end
+    end
+    if exist('hp','var')
+        legend(hp(lgcl_hp))
     end
 end
-if exist('hp','var')
-    legend(hp(lgcl_hp))
-end
-
 
