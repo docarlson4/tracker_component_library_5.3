@@ -29,7 +29,7 @@ rng(0)
 PD = 0.99998;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.995;
+PFT = 0.99995;
 
 %The viewing region range. This is important for dealing with the clutter
 %model.
@@ -37,8 +37,8 @@ RangeMin = 1e3;
 RangeMax = radar_obj.RangeAmb;
 %The angular region is two pi (all around).
 mmt_space = [
-    RangeMin -pi -radar_obj.RangeRateAmb/2
-    RangeMax  pi  radar_obj.RangeRateAmb/2];
+    RangeMin 0 -radar_obj.RangeRateAmb/2
+    RangeMax  2*pi  radar_obj.RangeRateAmb/2];
 % Measurement volume
 mmt_vol = prod(diff(mmt_space));
 
@@ -49,7 +49,7 @@ gammaVal = ChiSquareD.invCDF(PG,zDim);
 %% Generate Target Truth Data
 
 Ts = radar_obj.FrameTime;
-NumSamples = 100;
+NumSamples = 60;
 SpeedMin = 205*mph;
 SpeedMax = 600*mph;
 NumTgts = 5;
@@ -86,29 +86,44 @@ sigmaRr = radar_obj.RangeRateUnc;
 %Square root measurement covariance matrix; assume no correlation.
 SR = diag([sigmaR,sigmaAz,sigmaRr]);
 
-[zMeasCart, SRMeasCart, tMeas, zMeasPol] = genMmts( ...
+[zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, radar_obj.RangeRateAmb);
 
 %% Use of Range-Rate Measurements in Automatic Track Formation
 
-figure
+figure(Position=[207.4000  152.2000  840.8000  609.6000])
 hold on, grid on, box on
 
 dkHist = [];
 for kS = 2:NumSamples
-    t1 = tMeas{kS-1};
-    n1 = length(t1);
-    r1 = zMeasPol{kS-1}(1,:);
-    rr1 = zMeasPol{kS-1}(3,:);
-    t2 = tMeas{kS}';
-    n2 = length(t2);
-    r2 = zMeasPol{kS}(1,:)';
-    rr2 = zMeasPol{kS}(3,:)';
 
+    % Filter stationary clutter (SCF)
+    r1 = zMeasPol{kS-1}(1,:);
+    r2 = zMeasPol{kS}(1,:)';
+    [i2,i1] = find(abs(r2-r1)<1e-6);
+    i1u = unique(i1)';
+    i2u = unique(i2)';
+    r1(i1u) = nan;
+    lgcl1 = ~isnan(r1);
+    r2(i2u) = nan;
+    lgcl2 = ~isnan(r2);
+    
+    % Gather remaining from SCF
+    r1 = zMeasPol{kS-1}(1,lgcl1);
+    rr1 = zMeasPol{kS-1}(3,lgcl1);
+    t1 = zMeasPol{kS-1}(4,lgcl1);
+    n1 = length(t1);
+
+    r2 = zMeasPol{kS}(1,lgcl2)';
+    rr2 = zMeasPol{kS}(3,lgcl2)';
+    t2 = zMeasPol{kS}(4,lgcl2)';
+    n2 = length(t2);
+
+    % Estimate wrapping factors
     a1 = round(( (r2-r1)./(t2-t1) - rr1 )/radar_obj.RangeRateAmb );
     a2 = round(( (r2-r1)./(t2-t1) - rr2 )/radar_obj.RangeRateAmb );
-%     lgclNza = a1(:)'~=0 & a2(:)'~=0;
 
+    % Perform least-squares estimate of range and range-rate
     Tk = t2-t1; Tk = Tk(:)';
     rm1 = ones(n2,1) * r1; rm1 = rm1(:)';
     rrm1 = ones(n2,1) * rr1 + a1 * radar_obj.RangeRateAmb; rrm1 = rrm1(:)';
@@ -129,15 +144,18 @@ for kS = 2:NumSamples
         dk(k) = zk'*zk;
     end
 
+    % Filter according to Chi-sqr statistic
     lgclKeep = dk < 1*gammaVal;
     idxKeep = find(lgclKeep);
     [i2,i1] = ind2sub([n2,n1],idxKeep);
     i2u = unique(i2);
-    dkHist = [dkHist, dk(lgclKeep)];
+    dkHist = [dkHist, dk(lgclKeep)]; %#ok<AGROW> 
 
-    scatter(zMeasCart{kS}(1,:), zMeasCart{kS}(2,:), '.')
-    scatter(zMeasCart{kS}(1,i2u), zMeasCart{kS}(2,i2u), 'o')
+    % Scatter plots to visually gauge performance
+    scatter(zMeasCart{kS}(1,:)/km, zMeasCart{kS}(2,:)/km, '.')
+    scatter(zMeasCart{kS}(1,i2u)/km, zMeasCart{kS}(2,i2u)/km, 'o')
     axis equal
+    axis([-1,1,-1,1]*50)
     drawnow
 end
 
@@ -145,7 +163,7 @@ end
 figure
 hold on, grid on, box on
 histogram(dkHist, 'Normalization','pdf')
-histogram(ChiSquareD.rand([10000,1],2), 'Normalization','pdf')
+histogram(ChiSquareD.rand([length(dkHist),1],2), 'Normalization','pdf')
 disp('')
 
 return
