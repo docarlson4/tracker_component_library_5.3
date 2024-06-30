@@ -1,4 +1,4 @@
-function [zMeasCart, SRMeasCart,tMeas, zMeasPol] = genMmts( ...
+function [zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, AmbRR)
 %GENMMTS Summary of this function goes here
 %   Detailed explanation goes here
@@ -31,6 +31,7 @@ azs = rand(1,numStnry) * 2*pi;
 rrs = 0.1*randn(1,numStnry);
 % Compute the wrapped range-rate values
 rrs = mod(rrs + AmbRR/2, AmbRR) - AmbRR/2;
+ts = azs/(2*pi)*Ts;
 
 %Cubature points for measurement conversion.
 zDim = size(SR,1);
@@ -39,7 +40,6 @@ zDim = size(SR,1);
 numSamples = length(ZCartTrue);
 
 %Generate measurements and false alarms for each scan.
-tMeas = cell(numSamples,1);
 zMeasCart = cell(numSamples,1);
 zMeasPol = cell(numSamples,1);
 SRMeasCart = cell(numSamples,1);
@@ -58,17 +58,19 @@ for curScan = 1:numSamples
 
     %Allocate space for the detections.
     numMeas = numFalse+sum(isDet);
-    zPolCur = zeros(zDim,numMeas);
+    zPolCur = zeros(zDim+1,numMeas);
     curDet = 1;
 
     if(numMeas>=0)
         %Generate the detection from the targets, if any.
         for curTar = 1:numTargets
             if(isDet(curTar)) && ( ZPolTrue{curScan}(1,curTar) <= maxRange)
-                zPolCur(:,curDet) = ZPolTrue{curScan}(:,curTar) ...
+                zPolCur(1:3,curDet) = ZPolTrue{curScan}(1:3,curTar) ...
                     + SR*randn(zDim,1);
                 % Compute the wrapped range-rate values
                 zPolCur(3,curDet) = mod(zPolCur(3,curDet) + AmbRR/2, AmbRR) - AmbRR/2;
+                az = zPolCur(2,curDet);
+                zPolCur(4,curDet) = ( az/(2*pi) + (curScan-1) ) * Ts;
                 curDet = curDet+1;
             end
         end
@@ -87,13 +89,15 @@ for curScan = 1:numSamples
             % Compute the wrapped range-rate values
             rr = mod(rr + AmbRR/2, AmbRR) - AmbRR/2;
 
-            zPolCur(:,curDet) = [r; az; rr];
+            t = ( az/(2*pi) + (curScan-1) ) * Ts;
+
+            zPolCur(:,curDet) = [r; az; rr; t];
             curDet = curDet+1;
         end
             
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        zMeasPol{curScan} = [zPolCur, [rs;azs;rrs]];
+        zMeasPol{curScan} = [zPolCur, [rs;azs;rrs;ts + (curScan-1)*Ts]];
         [zMeasCart{curScan},RMeasCart] = pol2CartCubature( ...
             zMeasPol{curScan}(1:2,:),SR(1:2,1:2),0,true,[],[],[],xi,w);
         
@@ -102,7 +106,6 @@ for curScan = 1:numSamples
             RMeasCart(:,:,curMeas) = chol(RMeasCart(:,:,curMeas),'lower');
         end
         SRMeasCart{curScan} = RMeasCart;
-        tMeas{curScan} = repmat((curScan-1)*Ts, 1, numMeas + numStnry);
     end
 end
 
