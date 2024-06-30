@@ -22,7 +22,7 @@ classdef AircraftSwarm < handle
         SpeedMin
 
         ZCart % [pos;vel;w]
-        ZPol  % [rng;az;rngRate]
+        ZPol  % [rng;az;rngRate;timestamp]
     end
 
     properties(Dependent)
@@ -102,23 +102,31 @@ classdef AircraftSwarm < handle
             % Target lifetime
             num_lt = 3 + pois.rand([num_tgt,1],obj.MeanLifetime);
             xCart = cell(num_tgt, 1);
-            xPol = cell(num_tgt, 1);
+            zPol = cell(num_tgt, 1);
             xDot = cell(num_tgt, 1);
             x0 = [pos;vel;w];
             for kT = 1:num_tgt
                 xCart{kT} = x0(:,kT);
-                xPol{kT} = [
+                az = atan2( xCart{kT}(2,1), xCart{kT}(1,1) );
+                t = ( az/(2*pi) + (1-1) ) * Ts;
+
+                zPol{kT} = [
                     vecnorm( xCart{kT}(1:2,1) )
-                    atan2( xCart{kT}(1,1), xCart{kT}(2,1) )
-                    getRangeRate(xCart{kT}(1:4,1),true)];
+                    az
+                    getRangeRate(xCart{kT}(1:4,1),true)
+                    t];
                 for kLT = 2:min( num_lt(kT), obj.NumSamples )
                     xCart{kT}(:,kLT) = f( xCart{kT}(:,kLT-1) );
                     xDot{kT}(:,kLT) = (xCart{kT}(:,kLT) - xCart{kT}(:,kLT-1))/Ts;
 
-                    xPol{kT} = [xPol{kT}, [
+                    az = atan2( xCart{kT}(2,kLT), xCart{kT}(1,kLT) );
+                    t = ( az/(2*pi) + (kLT-1) ) * Ts;
+    
+                    zPol{kT} = [zPol{kT}, [
                         vecnorm( xCart{kT}(1:2,kLT) )
-                        atan2( xCart{kT}(1,kLT), xCart{kT}(2,kLT) )
-                        getRangeRate(xCart{kT}(1:4,kLT),true)] ];
+                        az
+                        getRangeRate(xCart{kT}(1:4,kLT),true)
+                        t ]];
                 end
             end
 
@@ -132,16 +140,16 @@ classdef AircraftSwarm < handle
                 for kT = 1:num_tgt
                     if num_fd(kT) == kS
                         obj.ZCart{kS} = xCart{kT}(:,1);
-                        obj.ZPol{kS} = xPol{kT}(:,1);
+                        obj.ZPol{kS} = zPol{kT}(:,1);
                     end
                     if (num_fd(kT) < kS) && (kS <= num_fd(kT) + num_lt(kT))
                         idx = kS - num_fd(kT);
-                        if xPol{kT}(1,idx) > obj.RangeMax ...
-                                || xPol{kT}(1,idx) < obj.RangeMin
+                        if zPol{kT}(1,idx) > obj.RangeMax ...
+                                || zPol{kT}(1,idx) < obj.RangeMin
                             continue
                         end
                         obj.ZCart{kS} = [obj.ZCart{kS}, xCart{kT}(:,idx)];
-                        obj.ZPol{kS} = [obj.ZPol{kS}, xPol{kT}(:,idx)];
+                        obj.ZPol{kS} = [obj.ZPol{kS}, zPol{kT}(:,idx)];
                     end
                 end
             end
