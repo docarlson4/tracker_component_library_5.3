@@ -172,9 +172,9 @@ sigmaRr = radar_obj.RangeRateUnc;
 %Square root measurement covariance matrix; assume no correlation.
 SR = diag([sigmaR,sigmaAz,sigmaRr]);
 
-[zMeasCart, SRMeasCart, tMeas, zMeasPol] = genMmts( ...
+[zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts);
-save("swarm_mmts", "zMeasCart", "SRMeasCart", "tMeas")
+save("swarm_mmts", "zMeasCart", "SRMeasCart")
 
 %% Motion Model
 
@@ -233,10 +233,10 @@ track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
 
 clear two_point_init
 for curScan = 1:numSamples
-    tCur = tMeas{curScan};
     zCurCart = zMeasCart{curScan};
     zPolCur = zMeasPol{curScan};
     SRCurCart = SRMeasCart{curScan};
+    tCur = zPolCur(5,:);
 
     numMeas = size(zCurCart,2);
 
