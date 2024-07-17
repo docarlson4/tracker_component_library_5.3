@@ -77,11 +77,14 @@ if numMeas > 0
         end
         if obj.MotionModelObject.Type == "NCA"
             xNew = [sp;sv;zeros(size(sp))];
-        else
+        elseif obj.MotionModelObject.Type == "NCV"
             xNew = [sp;sv];
+        else
+            error("Unknown Motion Model: " + obj.MotionModelObject.Type)
         end
 
         % State covariance
+        detS = zeros(1,length(i1));
         for k = 1:length(i1)
             T = del_t(1,i2(k),i1(k));
             S22 = SBuf{1}(:,:,i1(k))/T;
@@ -92,12 +95,28 @@ if numMeas > 0
                     SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
                     SBuf{2}(:,:,i2(k))/T, S22], ...
                     acc * eye(obj.SpaceDim));
-            else
+            elseif obj.MotionModelObject.Type == "NCV"
                 SNew(:,:,k) = [
                     SBuf{2}(:,:,i2(k)), zeros(zDim,zDim);
                     SBuf{2}(:,:,i2(k))/T, S22];
+            else
+                error("Unknown Motion Model: " + obj.MotionModelObject.Type)
             end
+            detS(k) = det(SNew(:,:,k));
         end
+
+        % Remove duplicates in favor of small detS
+%         u2 = unique(i2); numU = length(u2);
+%         if numU < length(i2)
+%             iKeep = zeros(1,numU);
+%             for kU = 1:numU
+%                 ig = find(u2(kU)==i2);
+%                 [~, iMinDetS] = min(detS);
+%                 iKeep(kU) = ig(iMinDetS);
+%             end
+%             xNew = xNew(:,iKeep);
+%             SNew = SNew(:,:,iKeep);
+%         end
 
         lgclNew = false(1,numMeas);
         lgclNew(i2) = true;
