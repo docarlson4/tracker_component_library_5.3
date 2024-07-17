@@ -9,7 +9,7 @@ ttl(1) = "\bf\fontsize{14}True and Estimated Trajectories";
 ttl(2) = "\bf\fontsize{12}Moton Model: " + motion_model_method ...
     + ", State Initialization: " + init_method;
 
-PDisp = 0.98;
+PDisp = 0.198;
 
 trackList = AVLTree();
 numDets = 0;
@@ -92,7 +92,7 @@ track_st_disp = track_st_disp(lgcl_r);
 % error("double check Filter minimum existence probability")
 
 % Filters minimum number of hits: num_hits
-min_hits = 15;
+min_hits = 5;
 num_hits = [track_st_disp.num_hits]';
 lgcl_hits = num_hits >= min_hits;
 track_st_disp = track_st_disp(lgcl_hits);
