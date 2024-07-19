@@ -100,7 +100,9 @@ for kS = 2:NumSamples
     % Filter stationary clutter (SCF)
     r1 = zMeasPol{kS-1}(1,:);
     r2 = zMeasPol{kS}(1,:)';
-    [i2,i1] = find(abs(r2-r1)<1e-6);
+    a1 = zMeasPol{kS-1}(2,:);
+    a2 = zMeasPol{kS}(2,:)';
+    [i2,i1] = find(sqrt(r2.*r2-2*r2.*r1.*cos(a2-a1)+r1.*r1)<50);
     i1u = unique(i1)';
     i2u = unique(i2)';
     r1(i1u) = nan;
