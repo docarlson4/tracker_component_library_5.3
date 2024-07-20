@@ -4,11 +4,15 @@ classdef StateInitialization < handle
     properties(Access=private)
         expectedTypes = ["One-Point", "Two-Point", "Three-Point"];
         motionModelTypes = ["NCV", "NCA", "GMV"]
-        stateDim
+        %         stateDim
+        kBuf
+        zBuf
+        SBuf
+        tBuf
     end
     properties
         Type        % input ["One-Point", "Two-Point"]
-        SpaceDim    % input
+%         SpaceDim    % input
         VelMin
         VelMax
         AccMax
@@ -20,7 +24,7 @@ classdef StateInitialization < handle
         function obj = StateInitialization(varargin)
             % STATEINITIALIZATION
             DEFAULT.Type = "One-Point";
-            DEFAULT.SpaceDim = 3;
+            % DEFAULT.SpaceDim = 3;
             DEFAULT.VelMin = 0;
             DEFAULT.VelMax = 100;
             DEFAULT.AccMax = 10;
@@ -40,8 +44,8 @@ classdef StateInitialization < handle
             end
             
             obj = init(obj);
-            clear TwoPoint
-            clear ThreePoint
+            % clear TwoPoint
+            % clear ThreePoint
         end
 
         function [xNew, SNew, lgclNew] = Initialize(obj, tCur, zCur, SRCur)
@@ -72,5 +76,6 @@ if ~any(contains(obj.MotionModelObject.Type, obj.motionModelTypes ))
     error("Wrong MotionModelObject. Expected " ...
         + strjoin(obj.motionModelTypes, ", "))
 end
-obj.stateDim = obj.MotionModelObject.StateDim;
+% obj.stateDim = obj.MotionModelObject.StateDim;
+obj.kBuf = 0;
 end
