@@ -92,7 +92,7 @@ track_st_disp = track_st_disp(lgcl_r);
 % error("double check Filter minimum existence probability")
 
 % Filters minimum number of hits: num_hits
-min_hits = 5;
+min_hits = 3;
 num_hits = [track_st_disp.num_hits]';
 lgcl_hits = num_hits >= min_hits;
 track_st_disp = track_st_disp(lgcl_hits);
@@ -110,7 +110,8 @@ for kT = num_trx:-1:1
     if any(lgcl_r)
         kL = mod(kT-1,6)+1;
         hp(kT) = plot(x/km,y/km,line_style(kL),'Color',clrs(kT,:), ...
-            LineWidth=2, DisplayName="track "+num2str(kT));
+            LineWidth=2, DisplayName="track "+num2str(kT)+...
+            " ("+num2str(num_hits(kT))+")");
         lgcl_hp(kT) = true;
     end
 end
@@ -119,6 +120,7 @@ if exist('hp','var')
 end
 
 %%
+return
 if num_trx > 0
     figure
     hold on, grid on, box on
