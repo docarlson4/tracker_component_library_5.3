@@ -87,7 +87,8 @@ sigmaRr = radar_obj.RangeRateUnc;
 SR = diag([sigmaR,sigmaAz,sigmaRr]);
 
 [zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
-    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, radar_obj.RangeRateAmb);
+    ZCartTrue, ZPolTrue, PD, lambdaV, mmt_space, radar_obj);
+%     ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, radar_obj.RangeRateAmb);
 
 %% Use of Range-Rate Measurements in Automatic Track Formation
 
