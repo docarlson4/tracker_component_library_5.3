@@ -80,7 +80,7 @@ disp('An example of a simple Kalman filter with Gauss-Markov model, data associa
 
 %% Radar Parameters
 radar_obj = RadarReceiver( ...
-    "Frametime", 2, ...
+    "Frametime", 12, ...
     "Bandwidth", 2*MHz, ...
     "NumPulse", 10, ...
     "SNRdB", 10);
@@ -92,13 +92,13 @@ disp('Setting parameters and creating the simulated trajectories.')
 
 zDim = 2;
 
-rng(0)
+rng(2)
 % rng("shuffle")
 
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.995;
+PFT = 0.000195;
 
 %The viewing region range. This is important for dealing with the clutter
 %model.
@@ -109,7 +109,7 @@ mmt_space = [
     minRange -pi -radar_obj.RangeRateAmb
     maxRange  pi  radar_obj.RangeRateAmb];
 % Measurement volume
-mmt_vol = prod(diff(mmt_space));
+% mmt_vol = prod(diff(mmt_space(:,1:2)));
 
 % Clutter estimation class (lambda equivalent)
 Lx = 2*maxRange; lx = 1*km;
@@ -144,14 +144,14 @@ gammaVal = ChiSquareD.invCDF(PG,zDim);
 
 %% Generate Target Truth Data
 
-Ts = 12;
+Ts = radar_obj.FrameTime;
 Ns = 100;
 Rmin = minRange;
 Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
 vLims = [Vmin, Vmax];
-avgNumTgts = 3;
+avgNumTgts = 1;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth, max_acc] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, avgNumTgts);
@@ -166,14 +166,15 @@ disp('Generating measurements.')
 lambdaV = -log( 1 - PFT );
 
 %Assumed standard deviations of the measurement noise components.
-sigmaR = radar_obj.RangeUnc;
-sigmaAz = radar_obj.AzimuthUnc;
-sigmaRr = radar_obj.RangeRateUnc;
+% sigmaR = radar_obj.RangeUnc;
+% sigmaAz = radar_obj.AzimuthUnc;
+% sigmaRr = radar_obj.RangeRateUnc;
 %Square root measurement covariance matrix; assume no correlation.
-SR = diag([sigmaR,sigmaAz,sigmaRr]);
+% SR = diag([sigmaR,sigmaAz,sigmaRr]);
 
+num_stnry = 0;
 [zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
-    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts);
+    ZCartTrue, ZPolTrue, PD, lambdaV, mmt_space, radar_obj, num_stnry);
 save("swarm_mmts", "zMeasCart", "SRMeasCart")
 
 %% Motion Model
@@ -212,7 +213,6 @@ state_init = Tracker.StateInitialization( ...
     "Type", "Two-Point", ...
     "VelMin", Vmin, ...
     "VelMax", Vmax, ...
-    "SpaceDim", spaceDim, ...
     "MotionModel", motion_model);
 % State initialization method - see displayTracksSwarm.m
 init_method = state_init.Type;
@@ -231,13 +231,11 @@ state_st = repmat(state_st, [numSamples,1]);
 
 track_st = struct('x',[],'S',[],'r',[],'ID',[],'scan_num',[],'num_hits',[]);
 
-clear two_point_init
 for curScan = 1:numSamples
     zCurCart = zMeasCart{curScan};
     zPolCur = zMeasPol{curScan};
     SRCurCart = SRMeasCart{curScan};
     tCur = zPolCur(4,:);
-%     error("tCur = zeros")
 
     numMeas = size(zCurCart,2);
 
