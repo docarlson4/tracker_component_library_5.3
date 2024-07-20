@@ -1,5 +1,5 @@
 function [zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
-    ZCartTrue, ZPolTrue, PD, lambdaV, SR, mmt_space, Ts, AmbRR)
+    ZCartTrue, ZPolTrue, PD, lambdaV, mmt_space, radar_obj, numStnry)
 %GENMMTS Summary of this function goes here
 %   Detailed explanation goes here
 %
@@ -16,16 +16,25 @@ function [zMeasCart, SRMeasCart, zMeasPol] = genMmts( ...
 % Developed in Matlab 9.12.0.2529717 (R2022a) Update 8 on PCWIN64.
 % Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2024-03-23 18:44
 
-if nargin < 8
-    AmbRR = 299792458;
+if nargin < 7
+    numStnry = 0;
 end
+%Assumed standard deviations of the measurement noise components.
+sigmaR = radar_obj.RangeUnc;
+sigmaAz = radar_obj.AzimuthUnc;
+sigmaRr = radar_obj.RangeRateUnc;
+%Square root measurement covariance matrix; assume no correlation.
+SR = diag([sigmaR,sigmaAz,sigmaRr]);
+
+Ts = radar_obj.FrameTime;
+
+AmbRR = radar_obj.RangeRateAmb;
 
 %%
 maxRange = mmt_space(2,1);
 
 % Stationary clutter
 km = 1e3;
-numStnry = 50;
 rs = 0*km + 5*km * sqrt(rand(1,numStnry));
 azs = rand(1,numStnry) * 2*pi;
 rrs = 0.1*randn(1,numStnry);
@@ -99,7 +108,8 @@ for curScan = 1:numSamples
             
         %We will now convert the measurements into Cartesian coordinates as
         %we are using a converted-measurement filter.
-        zMeasPol{curScan} = [zPolCur, [rs;azs;rrs;ts + (curScan-1)*Ts;IDs]];
+        zPols = [rs;azs;rrs] + SR*randn(3,numStnry);
+        zMeasPol{curScan} = [zPolCur, [zPols;ts + (curScan-1)*Ts;IDs]];
         [zMeasCart{curScan},RMeasCart] = pol2CartCubature( ...
             zMeasPol{curScan}(1:2,:),SR(1:2,1:2),0,true,[],[],[],xi,w);
         
