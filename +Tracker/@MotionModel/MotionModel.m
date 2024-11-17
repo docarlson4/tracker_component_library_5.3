@@ -18,6 +18,7 @@ classdef MotionModel < handle
         RevisitTime % input sample time
         MaxKinVar   % input NCV, GMV: maxAcc, NCA: maxJrk
         Tau         % input GMV: decorrelation time (s)
+        SigmaAcc    % NCA
 
         StateDim
         Q  % state process noise covariance (ns X ns)
@@ -37,6 +38,7 @@ classdef MotionModel < handle
             DEFAULT.RevisitTime = 1;
             DEFAULT.MaxKinVar = 9.8; % 1 g
             DEFAULT.Tau = 10*DEFAULT.RevisitTime; % s
+            DEFAULT.SigmaAcc = 1;
             
             p = inputParser;
 
@@ -106,11 +108,16 @@ classdef MotionModel < handle
                     % Process noise
                     q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
                         obj.RevisitTime);
-                    obj.Q = QPolyKalDirectDisc( ...
+                    obj.Q = QPolyKalDirectAlt( ...
                         obj.RevisitTime, ...
                         obj.StateDim, ...
                         order, ...
-                        q);
+                        obj.SigmaAcc^2);
+%                     obj.Q = QPolyKalDirectDisc( ...
+%                         obj.RevisitTime, ...
+%                         obj.StateDim, ...
+%                         order, ...
+%                         q);
                     % Propagator
                     obj.F = FPolyKal(obj.RevisitTime,obj.StateDim,order);
                     obj.f = @(x) obj.F*x;
