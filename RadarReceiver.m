@@ -119,17 +119,17 @@ classdef RadarReceiver < handle
 
         %% RangeUnc
         function value = get.RangeUnc(obj)
-            value = obj.c0./(2*obj.Bandwidth*sqrt(obj.SNR));
+            value = obj.c0./(2*obj.Bandwidth*sqrt(2*obj.SNR));
         end
 
         %% AzimuthUnc
         function value = get.AzimuthUnc(obj)
-            value = sqrt(pi/4) * obj.Beamwidth./sqrt(obj.SNR);
+            value = sqrt(pi/4) * obj.Beamwidth./sqrt(2*obj.SNR);
         end
         
         %% RangeRateUnc
         function value = get.RangeRateUnc(obj)
-            value = obj.c0./(2*obj.CenterFreq*obj.NumPulse*obj.PRI*sqrt(obj.SNR));
+            value = obj.c0./(2*obj.CenterFreq*obj.NumPulse*obj.PRI*sqrt(2*obj.SNR));
         end
         
         %% ProbCorrectUnfolding
