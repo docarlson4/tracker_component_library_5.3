@@ -20,3 +20,6 @@
 *.mat
 *.zip
 *.pdf
+
+# Test Code
+test*.m
