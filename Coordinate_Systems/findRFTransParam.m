@@ -118,17 +118,20 @@ if(nargin<2||isempty(az))
 end
 
 %Cartesian ECEF to ENU.
-u=getENUAxes(plhPoint,false,a,f);
+% u=getENUAxes(plhPoint,false,a,f);
+% DOC 2/8/2025: Actually is Cart ENU to ECEF = [CE]
+CE = getENUAxes(plhPoint,false,a,f);
 
-%Cartesian ENU to radar-face XYZ
-A = [-cos(az),                  sin(az),          0;
+%Cartesian ENU to radar-face XYZ: [AE]
+AE = [-cos(az),                  sin(az),          0;
      -sin(az)*sin(el), -cos(az)*sin(el),    cos(el);
       sin(az)*cos(el),	cos(az)*cos(el),    sin(el)];
 
 %Rotate around the local z axis in radar-face XYZ
-Mz=Euler1Ang2RotMat(zRot,'z','right');
+% Mz=Euler1Ang2RotMat(zRot,'z','right');
+AA = Euler1Ang2RotMat(zRot,'z','right');
 
-M=Mz*A*u.';
+M = AA*AE*CE.'; % [AC]
 
 if(useEUN)
     %If a left-handed East-Up-North coordinate system should be used.
