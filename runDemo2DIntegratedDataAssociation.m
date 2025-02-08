@@ -68,7 +68,7 @@ clc
 clearvars
 close all
 
-startup_tcl
+% startup_tcl
 
 dbstop if error
 
