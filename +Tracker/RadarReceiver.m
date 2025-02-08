@@ -5,7 +5,7 @@ classdef RadarReceiver < handle
     properties (Access = private)
         expectedTypes = [
             "BlairATF"  % Use of Range-Rate Measurements in ATF
-            "Type2"
+            "Ward"
             ]
     end
 
