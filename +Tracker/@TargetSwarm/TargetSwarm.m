@@ -34,7 +34,7 @@ classdef TargetSwarm < handle
         function obj = TargetSwarm(varargin)
             %TARGETSWARM Construct an instance of this class
             obj.Type = "Type1";
-            obj.RadarObject = RadarReceiver;
+            obj.RadarObject = Tracker.RadarReceiver;
             obj.RadarLocationGEO = [35;-85;300];
             obj.SwarmReferenceGEO = [35;-85;300];
             obj.ScanNumber = 50;
