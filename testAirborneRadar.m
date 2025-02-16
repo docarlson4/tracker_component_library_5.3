@@ -4,6 +4,8 @@ close all
 
 cd(fileparts(which(mfilename)))
 
+startup_tcl
+
 MyConstants
 
 dbstop if error
@@ -81,9 +83,9 @@ az = 90*deg;
 el = 0*deg;
 % Level flight (A/C not pitching)
 zRot = 0*deg;
-M = zeros(3,3,Ns);
+AC = zeros(3,3,Ns);
 for kS = 1:Ns
-    M(:,:,kS) = findRFTransParam(plhPoint(:,kS), az, el, zRot);
+    AC(:,:,kS) = findRFTransParam(plhPoint(:,kS), az, el, zRot);
 end
 
 %% Generate Measurements of Targets as Seen by the Sensor
@@ -95,7 +97,7 @@ useHalfRange = true;
 zTx = pos_plat_ecf;
 zRx = pos_plat_ecf;
 includeW = false;
-[z] = Cart2Ruv(zC, useHalfRange, zTx, zRx, M, includeW);
+[z] = Cart2Ruv(zC, useHalfRange, zTx, zRx, AC, includeW);
 % diag([1/km,1,1])*z
 
 % Slant range (m)
@@ -103,6 +105,8 @@ rs = z(1,:);
 % Direction cosines in ACS
 ua = z(2,:);
 va = z(3,:); % generally unknown for ULAs
+
+za = [rs;ua];
 
 %% Spectrum
 f0 = 3*GHz;
@@ -122,9 +126,22 @@ sig_ua = sqrt(3)/(k0*d*sqrt(Ne*(Ne-1)*(2*Ne-1)) * radar_obj.SNR);
 SR = diag([sig_rs, sig_ua]);
 
 %% Reconstruct Target Geolocation Based on Terrain Constraint
+
+% Propagate uncertain mmts (r,u) to produce uncertain ECF mmts
 %   - use cubature to generate moments: mean and covariance
-%       a. geodetic
-%       b. Cartesian (tracker measurement and motion model)
+%       a. Cartesian (tracker measurement and motion model)
+%       b. geodetic
+[pos_tgt_ecf_mmt, SP_tgt_ecf_mmt, pos_tgt_geo_mmt, SP_tgt_geo_mmt] = ...
+    TerrainConstrainedGeoCubature(za, SR, hp, zRx, AC);
+
+% Based on perfect mmts
+pos_tgt_ecf_est = zeros(3,Ns);
+for kS = 1:Ns
+    [pos_tgt_ecf_est(:,kS)] = TerrainConstrainedGeo( ...
+        za(:,kS), hp, zRx(:,kS), AC(:,:,kS));
+end
+pos_tgt_geo_est = Cart2Ellipse(pos_tgt_ecf_est);
+(pos_tgt_ecf_mmt - pos_tgt_ecf_est)
 
 %% Plots
 % Define the size and origin of the scene
@@ -148,13 +165,17 @@ hold on;
 geoplot(pos_tgt_geo(1,:)/deg, pos_tgt_geo(2,:)/deg, 'b-', ...
     'LineWidth', 2); 
 
+% Plot Target path
+geoplot(pos_tgt_geo_mmt(1,:)/deg, pos_tgt_geo_mmt(2,:)/deg, 'bs', ...
+    'LineWidth', 2); 
+
 % Set the limits of the scene
 geolimits( ...
     origin_lat + [-1/2,1/2]*scene_height, ...
     origin_lon + [-1/2,1/2]*scene_width);
 
 % Set the base map style
-geobasemap satellite
+geobasemap colorterrain
 
 title('Movement of Two Objects in Specified Scene');
 
