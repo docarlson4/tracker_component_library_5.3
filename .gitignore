@@ -20,10 +20,14 @@
 *.mat
 *.zip
 *.pdf
+
+# latex/Texstudio
 *.gz
 *.out
 *.aux
 *.log
+*.blg
+*.bbl
 
 # Test Code
 #test*.m
