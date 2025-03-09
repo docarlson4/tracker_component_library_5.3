@@ -1,5 +1,5 @@
 \documentclass[12pt]{article}
-\usepackage{amsmath, amssymb, graphicx, hyperref, tikz, import}
+\usepackage{amsmath, amssymb, graphicx, hyperref, tikz, import, cite}
 \usepackage[document]{ragged2e}
 
 
@@ -11,7 +11,7 @@
 	\maketitle
 	
 	\section{Introduction}
-	A closed form equation for the intersection of two planes and a sphere is derived. The purpose is to estimate the elevation angle $\varepsilon$	of a target from independent range $r$ and azimuth $\alpha$ measurements in respective East-North-Up (ENU) coordinates. The derivation will take place in global Earth-Centered Earth-Fixed (ECEF) coordinates.
+	A closed form equation for the intersection of two planes and a sphere is derived. The purpose is to estimate the elevation angle $\varepsilon$ of a target from independent range $r$ and azimuth $\alpha$ measurements in respective East-North-Up (ENU) coordinates. The derivation will take place in global Earth-Centered Earth-Fixed (ECEF) coordinates.
 	
 	\section{Diagram}
 	Here is a circle with two vectors at offset angles and the angle $\alpha$ labeled from points relative to North in an E-N coordinate system.
@@ -40,7 +40,7 @@
 	\end{equation}	
 	
 	Given measurements $r_1$ and $r_2$, write these in terms the unknown point 
-	$\vec{P}$, and known $\vec{b}$ and $\vec{P_0}$.
+	$\vec{P}$, and known vectors $\vec{b}$ and $\vec{P_0}$.
 	
 	\begin{equation}
 		r_1 = |\vec{P} - \vec{P_1}| = |\vec{P} - \vec{P_0} + \vec{b}/2|
@@ -74,11 +74,12 @@
 	coordinate systems.
 	
 	\begin{equation}
-		\vec{P_1}^{ENU} = \left(\begin{array}{c}
+		\vec{P_1}^{ENU} = r\left(\begin{array}{c}
 			\sin\alpha \cos\varepsilon \\
 			\cos\alpha \cos\varepsilon \\
 			\sin\varepsilon
 			\end{array}\right)
+			\label{eq:pos_vec_enu}
 	\end{equation}	
 	
 	\begin{equation}
@@ -90,5 +91,135 @@
 
 	The matrices $[EC]$ are defined to transform from global Earth-Centered Earth-Fixed (ECEF) coordinates to local
 	ENU. The matrix $[CE]$ is $[EC]^T$
+	
+	\section{Equation of Intersecting Planes}
+	\begin{equation}
+	P^c = P_m^c + \left[ E_m C \right]_e^c P_m^e
+	\end{equation}
+	
+	\begin{equation}
+	P_m^e = \left[ E_m C \right]_c^e \left( P^c - P_m^c \right) = \left[ E_m C \right]_c^e \left( Q^c - (-1)^m \frac{b^c}{2} \right)
+	\label{eq:pos_vec_enu_2}
+	\end{equation}
+	
+	\begin{equation}
+	\vec{P} - \vec{P}_m = \vec{Q} - (-1)^m \frac{\vec{b}}{2} \quad m = 1, 2
+	\end{equation}
+	
+	From Eqn. \ref{eq:pos_vec_enu},
+	$
+	\cos\alpha_m P_m^{e=1} = \sin\alpha_m P_m^{e=2}.
+	$
+	and expanding Eqn. \ref{eq:pos_vec_enu_2},
+	
+	\begin{equation}
+		\left( \cos\alpha_m \left[ E_m C \right]_c^1 - \sin\alpha_m \left[ E_m C \right]_c^2 \right) Q^c = 
+		 (-1)^{m} \frac{1}{2} \left( \cos\alpha_m \left[ E_m C \right]_c^1 - \sin\alpha_m \left[ E_m C \right]_c^2 \right) b^c
+	\end{equation}
+	
+	\begin{equation}
+	a_m \equiv \cos \alpha_m \left[ E_m C \right]_c' - \sin \alpha_m \left[ E_m C \right]_c^2
+	\end{equation}
+	
+	\begin{equation}
+	\vec{a}_m \cdot \vec{Q} = (-1)^m \frac{1}{2} \vec{a}_m \cdot \vec{b}
+	\end{equation}
+	
+	\begin{equation}
+	\vec{a}_m \cdot \vec{a}_n = 1
+	\end{equation}
+	
+	\begin{equation}
+	\vec{Q} \cdot \vec{Q} = r_q^2
+	\end{equation}
+	
 
+	\section{Appendix A: Algorithm for Plane-Plane-Sphere Intersection \cite{OpenAI2023}}
+	
+	% Step 1: Intersection Line of Two Planes
+	Consider the equations of two planes:
+	\begin{align}
+		a_1 x + b_1 y + c_1 z &= d_1 \label{eq:plane1} \\
+		a_2 x + b_2 y + c_2 z &= d_2 \label{eq:plane2}
+	\end{align}
+	
+	The direction vector of the intersection line is given by the cross product of the normal vectors of the planes:
+	
+	
+	\[
+	\mathbf{d} = \begin{vmatrix}
+		\mathbf{i} & \mathbf{j} & \mathbf{k} \\
+		a_1 & b_1 & c_1 \\
+		a_2 & b_2 & c_2
+	\end{vmatrix} = (b_1 c_2 - c_1 b_2, c_1 a_2 - a_1 c_2, a_1 b_2 - b_1 a_2)
+	\]
+	
+	
+	
+	Let \( \mathbf{P}(x_0, y_0, z_0) \) be a point on the intersection line.
+	
+	% Step 2: Parameterize the Intersection Line
+	The intersection line can be parameterized as:
+	
+	
+	\[
+	\mathbf{L}(t) = (x_0 + t d_x, y_0 + t d_y, z_0 + t d_z)
+	\]
+	
+	
+	
+	% Step 3: Substitute into Sphere Equation
+	Consider the sphere with equation:
+	
+	
+	\[
+	(x - x_s)^2 + (y - y_s)^2 + (z - z_s)^2 = r^2
+	\]
+	
+	
+	
+	Substitute the parameterized line equation into the sphere equation:
+	
+	
+	\[
+	(x_0 + t d_x - x_s)^2 + (y_0 + t d_y - y_s)^2 + (z_0 + t d_z - z_s)^2 = r^2
+	\]
+	
+	
+	
+	% Step 4: Solve the Quadratic Equation
+	Expand and simplify to form a quadratic equation in \( t \):
+	
+	
+	\[
+	A t^2 + B t + C = 0
+	\]
+	
+	
+	where
+	\begin{align*}
+		A &= d_x^2 + d_y^2 + d_z^2 \\
+		B &= 2 \left( (x_0 - x_s) d_x + (y_0 - y_s) d_y + (z_0 - z_s) d_z \right) \\
+		C &= (x_0 - x_s)^2 + (y_0 - y_s)^2 + (z_0 - z_s)^2 - r^2
+	\end{align*}
+	
+	Solve the quadratic equation for \( t \):
+	
+	
+	\[
+	t = \frac{-B \pm \sqrt{B^2 - 4AC}}{2A}
+	\]
+	
+	
+	
+	% Step 5: Find Intersection Points
+	The points of intersection \( \mathbf{Q} \) are given by:
+	\begin{align*}
+		Q_1 &= (x_0 + t_1 d_x, y_0 + t_1 d_y, z_0 + t_1 d_z) \\
+		Q_2 &= (x_0 + t_2 d_x, y_0 + t_2 d_y, z_0 + t_2 d_z)
+	\end{align*}
+	
+	\bibliographystyle{ieeetr}
+	\bibliography{references}
+	
 \end{document}	
