@@ -1,0 +1,94 @@
+\documentclass[12pt]{article}
+\usepackage{amsmath, amssymb, graphicx, hyperref, tikz, import}
+\usepackage[document]{ragged2e}
+
+
+\title{\textbf{Intersection of Two Planes and a Sphere}}
+\author{Douglas O. Carlson, Ph.D.}
+\date{\today}
+
+\begin{document}
+	\maketitle
+	
+	\section{Introduction}
+	A closed form equation for the intersection of two planes and a sphere is derived. The purpose is to estimate the elevation angle $\varepsilon$	of a target from independent range $r$ and azimuth $\alpha$ measurements in respective East-North-Up (ENU) coordinates. The derivation will take place in global Earth-Centered Earth-Fixed (ECEF) coordinates.
+	
+	\section{Diagram}
+	Here is a circle with two vectors at offset angles and the angle $\alpha$ labeled from points relative to North in an E-N coordinate system.
+	
+	\begin{center}
+		\subimport{./Diagram2}{CircleVecVec.tex}
+	\end{center}
+	
+	\section{General Equations}
+	Baseline $\vec{b}$ of the two radar platforms in ECEF coordinates; $\vec{P_1}$ and $\vec{P_2}$.
+	\begin{equation}
+		\vec{b} = \vec{P_2} - \vec{P_1}
+	\end{equation}
+
+	Center of a sphere $\vec{P_0}$.
+	\begin{equation}
+		\vec{P_0} = (\vec{P_1} + \vec{P_2})/2
+	\end{equation}
+	
+	Write $\vec{P_1}$ and $\vec{P_1}$ in terms of $\vec{b}$ and $\vec{P_0}$.
+	\begin{equation}
+		\vec{P}_1 = \vec{P_0} - \vec{b} / 2
+	\end{equation}	
+	\begin{equation}
+		\vec{P}_2 = \vec{P_0} + \vec{b} / 2
+	\end{equation}	
+	
+	Given measurements $r_1$ and $r_2$, write these in terms the unknown point 
+	$\vec{P}$, and known $\vec{b}$ and $\vec{P_0}$.
+	
+	\begin{equation}
+		r_1 = |\vec{P} - \vec{P_1}| = |\vec{P} - \vec{P_0} + \vec{b}/2|
+	\end{equation}
+	
+	\begin{equation}
+		r_2 = |\vec{P} - \vec{P_2}| = |\vec{P} - \vec{P_0} - \vec{b}/2|
+	\end{equation}
+
+	Square both sides and substitute $\vec{Q} \equiv \vec{P} - \vec{P_0}$.
+	
+	\begin{equation}
+		r_1^2 = Q^2 + \vec{b} \cdot \vec{Q} + b^2/4
+	\end{equation}
+
+	\begin{equation}
+		r_2^2 = Q^2 - \vec{b} \cdot \vec{Q} + b^2/4
+	\end{equation}
+	
+	Combine the above equations.
+	\begin{equation}
+		\vec{b} \cdot \vec{Q}=\frac{r_1^2-r_2^2}{2}
+	\end{equation}
+	
+	\begin{equation}
+		r_q^2=|\vec{Q}|^2=\left|\vec{p}-\vec{p}_0\right|^2=\frac{1}{2}\left(r_1^2+r_2^2\right)-\frac{1}{4} b^2
+	\end{equation}	
+	
+	Introduce planes defined by azimuth measurements $\alpha_1$  and $\alpha_2$, and unknown elevation angles
+	$\varepsilon_1$  and $\varepsilon_2$. The vectors $\vec{P}^{ENU}$ are defined as target positions in respective ENU
+	coordinate systems.
+	
+	\begin{equation}
+		\vec{P_1}^{ENU} = \left(\begin{array}{c}
+			\sin\alpha \cos\varepsilon \\
+			\cos\alpha \cos\varepsilon \\
+			\sin\varepsilon
+			\end{array}\right)
+	\end{equation}	
+	
+	\begin{equation}
+		\vec{P} = \vec{P_1} + [CE]^1 \vec{P_1}^{ENU}
+	\end{equation}	
+	\begin{equation}
+		\vec{P} = \vec{P_2} + [CE]^2 \vec{P_2}^{ENU}
+	\end{equation}
+
+	The matrices $[EC]$ are defined to transform from global Earth-Centered Earth-Fixed (ECEF) coordinates to local
+	ENU. The matrix $[CE]$ is $[EC]^T$
+
+\end{document}	

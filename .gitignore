@@ -20,6 +20,10 @@
 *.mat
 *.zip
 *.pdf
+*.gz
+*.out
+*.aux
+*.log
 
 # Test Code
 #test*.m
