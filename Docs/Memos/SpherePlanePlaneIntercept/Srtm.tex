@@ -1,0 +1,120 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\title{Estimating Height Uncertainty in SRTM Data}
+\author{}
+\date{}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+This document discusses how to estimate height uncertainty in Shuttle Radar Topography Mission (SRTM) data for a region defined by latitude and longitude. 
+
+\section{Obtaining SRTM Data}
+\begin{itemize}
+    \item Download SRTM data in GeoTIFF format, typically with 1-arcsecond (~30m) or 3-arcsecond (~90m) resolution, from sources like \href{https://earthexplorer.usgs.gov/}{USGS Earth Explorer} or \href{https://doi.org/10.5067/MEaSUREs/SRTM/SRTMGL1.003}{NASA’s SRTM data archive}.
+    \item Load the data into MATLAB using the \texttt{readgeoraster} function:
+\end{itemize}
+
+\begin{verbatim}
+[Z, R] = readgeoraster('srtm_file.tif');
+\end{verbatim}
+
+\section{Extracting Elevation Data for a Region}
+Define your region of interest by specifying latitude and longitude bounds. Extract the relevant subset using:
+
+\begin{verbatim}
+latlim = [lat_min, lat_max];
+lonlim = [lon_min, lon_max];
+[Z_sub, R_sub] = geocrop(Z, R, latlim, lonlim);
+\end{verbatim}
+
+\section{Understanding SRTM Uncertainty Characteristics}
+\begin{itemize}
+    \item \textbf{Absolute Vertical Accuracy:} Reported as approximately $\pm 16$ m at 90\% confidence.
+    \item \textbf{Relative Vertical Accuracy:} Typically between $\pm 6$ m to $\pm 10$ m over shorter distances.
+\end{itemize}
+
+\section{Computing Local Uncertainty Metrics}
+\subsection{Standard Deviation Method}
+Calculate the standard deviation of elevation values as a measure of local variability:
+
+\begin{verbatim}
+height_std = std(Z_sub(:), 'omitnan');
+\end{verbatim}
+
+\subsection{Slope-Dependent Uncertainty}
+Uncertainty often increases with terrain slope. Estimate slope using:
+
+\begin{verbatim}
+[slope, aspect] = gradientm(Z_sub, R_sub);
+\end{verbatim}
+
+Use an empirical model:
+
+\begin{equation}
+\sigma_h = \sigma_0 + k \cdot \tan(\theta)
+\end{equation}
+
+Where:
+\begin{itemize}
+    \item $\sigma_h$ = height uncertainty
+    \item $\sigma_0$ = baseline uncertainty (6–10m for SRTM)
+    \item $k$ = slope-dependent factor (typically 1–2m per unit slope)
+    \item $\theta$ = slope in radians
+\end{itemize}
+
+\subsection{Comparison with Ground Truth (if available)}
+If ground truth data is available, compute the Root Mean Square Error (RMSE):
+
+\begin{verbatim}
+RMSE = sqrt(mean((Z_sub - Z_ground).^2, 'omitnan'));
+\end{verbatim}
+
+\section{Summary of Uncertainty}
+Report both the standard deviation and RMSE (if applicable). Consider separate metrics for flat and sloped areas if the region has diverse terrain.
+
+\section{Understanding Absolute and Relative Vertical Uncertainty}
+\textbf{Absolute vertical uncertainty} refers to the error in elevation measurements relative to an established vertical datum, such as mean sea level. For SRTM, it is reported as $\pm 16$ m at 90\% confidence.
+
+\textbf{Relative vertical uncertainty} refers to the accuracy of elevation differences between nearby points within a localized area, typically around $\pm 6$ m to $\pm 10$ m for SRTM.
+
+\section{Converting Confidence Level to Variance}
+To convert $\pm 16$ meters at 90\% confidence level into a variance:
+
+\subsection{1. Interpret the Confidence Level}
+The statement $\pm 16$ meters at 90\% confidence level suggests:
+
+\[
+\text{P}(-16 \leq X \leq +16) = 0.90
+\]
+
+\subsection{2. Find the Corresponding Z-Score}
+For a normal distribution, a 90\% confidence interval corresponds to approximately $\pm 1.645$ standard deviations:
+
+\[
+\mu \pm 1.645\sigma = \pm 16
+\]
+
+\subsection{3. Calculate the Standard Deviation (\sigma)}
+Solve for $\sigma$:
+
+\[
+\sigma = \frac{16}{1.645} \approx 9.73 \text{ m}
+\]
+
+\subsection{4. Calculate the Variance (\sigma^2)}
+Variance is the square of the standard deviation:
+
+\[
+\sigma^2 = (9.73)^2 \approx 94.7 \text{ m}^2
+\]
+
+\subsection{Summary}
+The variance corresponding to $\pm 16$ meters at 90\% confidence is approximately $94.7 \text{ m}^2$.
+
+\end{document}
