@@ -17,8 +17,10 @@ classdef MotionModel < handle
         SpaceDim    % input
         RevisitTime % input sample time
         MaxKinVar   % input NCV, GMV: maxAcc, NCA: maxJrk
-        Tau         % input GMV: decorrelation time (s)
-        SigmaAcc    % NCA
+        Tau         % 2DCT, GMV: decorrelation time (s)
+        SigmaAcc    % NCV, 2DCT, WPA
+        SigmaJrk    % NCA
+        SigmaTurn   % 2DCT
 
         StateDim
         Q  % state process noise covariance (ns X ns)
@@ -39,6 +41,8 @@ classdef MotionModel < handle
             DEFAULT.MaxKinVar = 9.8; % 1 g
             DEFAULT.Tau = 10*DEFAULT.RevisitTime; % s
             DEFAULT.SigmaAcc = 1;
+            DEFAULT.SigmaJrk = 1;
+            DEFAULT.SigmaTurn = 1;
             
             p = inputParser;
 
@@ -69,6 +73,11 @@ classdef MotionModel < handle
             obj = update_motion_model(obj);
         end
 
+        function DispalyTypes(obj)
+            strJ = strjoin(obj.expectedTypes,", ");
+            str = sprintf('%s', strJ);
+            fprintf("%s\n",str)
+        end
     end
 
     methods (Access = private)
@@ -92,13 +101,38 @@ classdef MotionModel < handle
                     order = 1;
                     obj.StateDim = (order+1)*obj.SpaceDim;
                     % Process noise
-                    q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
-                        obj.RevisitTime);
                     obj.Q = QPolyKalDirectDisc( ...
                         obj.RevisitTime, ...
                         obj.StateDim, ...
                         order, ...
-                        q);
+                        obj.SigmaAcc^2);
+                    obj.SQ = cholSemiDef(obj.Q, 'lower');
+                    % Propagator
+                    obj.F = FPolyKal(obj.RevisitTime,obj.StateDim,order);
+                    obj.f = @(x) obj.F*x;
+
+                case "2DCT"
+                    order = 1;
+                    obj.StateDim = (order+1)*obj.SpaceDim;
+                    % Process noise
+                    obj.Q = @(x) QCoordTurn(obj.RevisitTime,x, ...
+                        obj.SigmaAcc^2,obj.SigmaTurn^2);
+                    obj.SQ = @(x) cholSemiDef(obj.Q(x), 'lower');
+                    % Propagator
+                    obj.F = @(x) FCoordTurn2D(obj.RevisitTime, ...
+                        x, 'TurnRate', 3, obj.Tau);
+                    obj.f = @(x) obj.F(x)*x;
+                    
+                case "WPA"
+                    order = 2;
+                    obj.StateDim = (order+1)*obj.SpaceDim;
+                    % Process noise
+                    obj.Q = QPolyKalDirectAlt( ...
+                        obj.RevisitTime, ...
+                        obj.StateDim, ...
+                        order, ...
+                        obj.SigmaAcc^2);
+                    obj.SQ = cholSemiDef(obj.Q, 'lower');
                     % Propagator
                     obj.F = FPolyKal(obj.RevisitTime,obj.StateDim,order);
                     obj.f = @(x) obj.F*x;
@@ -106,18 +140,12 @@ classdef MotionModel < handle
                     order = 2;
                     obj.StateDim = (order+1)*obj.SpaceDim;
                     % Process noise
-                    q = processNoiseSuggest('PolyKal-ROT',obj.MaxKinVar, ...
-                        obj.RevisitTime);
-                    obj.Q = QPolyKalDirectAlt( ...
+                    obj.Q = QPolyKalDirectDisc( ...
                         obj.RevisitTime, ...
                         obj.StateDim, ...
                         order, ...
-                        obj.SigmaAcc^2);
-%                     obj.Q = QPolyKalDirectDisc( ...
-%                         obj.RevisitTime, ...
-%                         obj.StateDim, ...
-%                         order, ...
-%                         q);
+                        obj.SigmaJrk^2);
+                    obj.SQ = cholSemiDef(obj.Q, 'lower');
                     % Propagator
                     obj.F = FPolyKal(obj.RevisitTime,obj.StateDim,order);
                     obj.f = @(x) obj.F*x;
@@ -136,15 +164,17 @@ classdef MotionModel < handle
                         q, ...
                         obj.Tau, ...
                         order);%Process noise covariance matrix.
+                    obj.SQ = cholSemiDef(obj.Q, 'lower');
 
                     obj.F = FGaussMarkov( ...
                         obj.RevisitTime, ...
                         obj.StateDim, ...
                         obj.Tau, ...
                         order);%State transition matrix
+                otherwise
+                    error("Input Type, "+obj.Type+", not implemented in Tracker.MotionModel")
 
             end
-            obj.SQ = cholSemiDef(obj.Q, 'lower'); 
         end
     end
 end
