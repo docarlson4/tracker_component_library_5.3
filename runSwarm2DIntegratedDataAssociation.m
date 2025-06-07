@@ -98,7 +98,7 @@ rng(2)
 PD = 0.98;%Detection probability --same for all targets.
 
 % Probability of false target
-PFT = 0.000195;
+PFT = 0.95;
 
 %The viewing region range. This is important for dealing with the clutter
 %model.
@@ -151,7 +151,7 @@ Rmax = maxRange;
 Vmin = 25*mph;
 Vmax = 600*mph;
 vLims = [Vmin, Vmax];
-avgNumTgts = 1;
+avgNumTgts = 3;
 
 [ZCartTrue, ZPolTrue, Ts, num_tgt_truth, max_acc] = ...
     genSwarm(Ts, Ns, Rmin, Rmax, Vmin, Vmax, avgNumTgts);
@@ -210,7 +210,7 @@ motion_model_method = motion_model.Type;
 %% State Initialization
 init_methods = ["One-Point", "Two-Point", "Three-Point"];
 state_init = Tracker.StateInitialization( ...
-    "Type", "Two-Point", ...
+    "Type", "Three-Point", ...
     "VelMin", Vmin, ...
     "VelMax", Vmax, ...
     "MotionModel", motion_model);
