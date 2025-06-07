@@ -1,4 +1,4 @@
-function [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur)
+function [xNew, SNew, lgclNew] = ThreePoint(obj, tCur, zCur, SRCur)
 %TWO_POINT_INIT Two-point state and lower Cholesky decomposed covariance
 %initialization for arbitrary spatial dimensions D
 %
@@ -14,22 +14,15 @@ function [xNew, SNew] = ThreePoint(obj, tCur, zCur, SRCur)
 % USAGE
 %   [xNew, SNew] = TwoPoint(obj, tCur, zCur, SRCur)
 
-% Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2024-03-23 20:45
+% Douglas O. Carlson, Ph.D. (doug.o.carlson@gmail.com), 2025-06-07
 
 %%
-
-persistent kBuf zBuf SBuf tBuf
-
 vLims = [obj.VelMin, obj.VelMax];
-xDim = obj.StateDim;
+xDim = obj.MotionModelObject.StateDim;
 [zDim, numMeas] = size(zCur);
+Z00 = zeros(zDim,zDim);
 
-if isempty(kBuf)
-    kBuf = 0;
-    zBuf = cell(3,0);
-    SBuf = cell(3,0);
-    tBuf = cell(3,0);
-end
+lgclNew = false(1,numMeas);
 
 xNew = zeros(xDim,0);
 SNew = zeros(xDim,xDim,0);
@@ -41,71 +34,95 @@ if size(SRCur,3) == 1
     SRCur = repmat(SRCur, [1,1,numMeas]);
 end
 if numMeas > 0
-    kBuf = kBuf+1;
-    zBuf{kBuf} = zCur;
-    SBuf{kBuf} = SRCur;
-    tBuf{kBuf} = tCur;
-    if kBuf == 3
+    obj.kBuf = obj.kBuf+1;
+    obj.zBuf{obj.kBuf} = zCur;
+    obj.SBuf{obj.kBuf} = SRCur;
+    obj.tBuf{obj.kBuf} = tCur;
+    if obj.kBuf == 3
         % Generate initial state
-        t1 = tBuf{1}(1,:); N1 = length(t1);
-        t2 = tBuf{2}(1,:); N2 = length(t2);
-        t3 = tBuf{3}(1,:); N3 = length(t3);
+        t1 = obj.tBuf{1}(1,:); N1 = length(t1);
+        t2 = obj.tBuf{2}(1,:); N2 = length(t2);
+        t3 = obj.tBuf{3}(1,:); N3 = length(t3);
         del_t21(1,:,:) = t2' - t1;
         del_t32(1,:,:) = t3' - t2;
-        del_t31(1,:,:) = t3' - t1;
 
         % Mmts: D X N3 X N1, D - spatial dimension
-        z1 = permute(repmat(zBuf{1},[1,1,N3]),[1,3,2]);
-        z2 = zBuf{2};
-        z3 = repmat(zBuf{3},[1,1,N1]);
-        del_z31 = z3 - z1;
+        z1 = permute(repmat(obj.zBuf{1},[1,1,N2]),[1,3,2]);
+        z2 = repmat(obj.zBuf{2},[1,1,N1]);
+        del_z21 = z2 - z1;
+        z2 = permute(repmat(obj.zBuf{2},[1,1,N3]),[1,3,2]);
+        z3 = repmat(obj.zBuf{3},[1,1,N2]);
+        del_z32 = z3 - z2;
 
         % Velocity and speed
-        v = bsxfun(@rdivide,del_z31,repmat(del_t31,[2,1,1]));
-        vMag = sqrt(squeeze(sum(v.*v,1)));
+        v21 = bsxfun(@rdivide,del_z21,repmat(del_t21,[2,1,1]));
+        vMag21 = sqrt(mySqueeze(sum(v21.*v21,1)));
+        v32 = bsxfun(@rdivide,del_z32,repmat(del_t32,[2,1,1]));
+        vMag32 = sqrt(mySqueeze(sum(v32.*v32,1)));
 
         % Apply speed limits
-        lgcl_vMag = (vLims(1) < vMag) & (vMag < vLims(2));
-        [i3,i1] = find(lgcl_vMag);
-        % num31 = length(i1);
+        lgcl_vMag21 = sparse((vLims(1) < vMag21) & (vMag21 < vLims(2)));
+        lgcl_vMag32 = sparse((vLims(1) < vMag32) & (vMag32 < vLims(2)));
 
-        % Angle constraint
-        cos_phi0 = cosd(90);
-        for k2 = 1:N2
-            del_z32 = z3(:,i3) - z2(:,k2);
-            mag_z32 = vecnorm(del_z32);
-            del_z21 = z2(:,k2) - z1(:,i1);
-            mag_z21 = vecnorm(del_z21);
-            cos_phi = (dot(del_z32,del_z21)./(mag_z32.*mag_z21 + eps));
-            lgcl_phi = cos_phi > cos_phi0;
+        idx_triplets = FindConnectedPaths(lgcl_vMag21, lgcl_vMag32);
+        if ~isempty(idx_triplets)
+            lgclNew(idx_triplets(:,3)) = true;
         end
-        
-        % State vector
-        sp = z3(:,i3);
-        sv = zeros(size(sp));
-        for k = 1:length(i1)
-            sv(:,k) = v(:,i3(k),i1(k));
-        end
-        xNew = [sp;sv];
 
-        % State covariance
-        for k = 1:length(i1)
-            T = del_t31(1,i3(k),i1(k));
-            S22 = SBuf{1}(:,:,i1(k))/T;
+        sp = []; sv = []; sa = [];
+        for k = 1:size(idx_triplets, 1)
+            % State vector
+            % - position
+            sp = cat( 2, sp, z3(:, idx_triplets(k,3)) );
+            % - velocity
+            v = v32(:, idx_triplets(k,3), idx_triplets(k,2));
+            sv = cat( 2, sv, v );
+            % - acceleration
+            a = v - v21(:, idx_triplets(k,2), idx_triplets(k,1));
+            aDen = del_t32(1, idx_triplets(k,3), idx_triplets(k,2)) ...
+                + del_t21(1, idx_triplets(k,2), idx_triplets(k,1));
+            a = a./aDen;
+            sa = cat( 2, sa, a );
+
+            % State covariance
+            T21 = del_t21(1, idx_triplets(k,2), idx_triplets(k,1));
+            T32 = del_t32(1, idx_triplets(k,3), idx_triplets(k,2));
+            T31 = T32 + T21;
+
+            S11 = obj.SBuf{3}(:, :, idx_triplets(k,3));
+            S21 = S11/T32;
+            S31 = S11/(T32*T31);
+            S22 = obj.SBuf{2}(:, :, idx_triplets(k,2))/T32;
+            S32 = S22/T21;
+            S33 = obj.SBuf{1}(:, :, idx_triplets(k,1))/(T31*T21);
+
             SNew(:,:,k) = [
-                SBuf{3}(:,:,i3(k)), zeros(zDim,zDim);
-                SBuf{3}(:,:,i3(k))/T, S22];
+                S11, Z00, Z00
+                S21, S31, Z00;
+                S31, S32, S33];
         end
+        xNew = [sp;sv;sa];
 
         % Reset zBuf for next mmt
-        zBuf{1} = zBuf{2};
-        SBuf{1} = SBuf{2};
-        tBuf{1} = tBuf{2};
-        zBuf{2} = zBuf{3};
-        SBuf{2} = SBuf{3};
-        tBuf{2} = tBuf{3};
-        kBuf = 1;
+        obj.zBuf{1} = obj.zBuf{2};
+        obj.SBuf{1} = obj.SBuf{2};
+        obj.tBuf{1} = obj.tBuf{2};
+        obj.zBuf{2} = obj.zBuf{3};
+        obj.SBuf{2} = obj.SBuf{3};
+        obj.tBuf{2} = obj.tBuf{3};
+        obj.kBuf = 2;
     end
 end
 
 end
+        %         % Angle constraint
+        %         cos_phi0 = cosd(90);
+        %         for k2 = 1:N2
+        %             del_z32 = z3(:,i3) - z2(:,k2);
+        %             mag_z32 = vecnorm(del_z32);
+        %             del_z21 = z2(:,k2) - z1(:,i1);
+        %             mag_z21 = vecnorm(del_z21);
+        %             cos_phi = (dot(del_z32,del_z21)./(mag_z32.*mag_z21 + eps));
+        %             lgcl_phi = cos_phi > cos_phi0;
+        %         end
+
