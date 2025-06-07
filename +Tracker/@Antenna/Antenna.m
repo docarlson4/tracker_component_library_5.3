@@ -122,8 +122,8 @@ classdef Antenna < handle
             surf(az0,el0,gain)
             surf(cos(el).*sin(az),sin(el),gain)
             shading flat
-            xlabel('\bf Azimuth (deg) ')
-            ylabel('\bf Elevation (deg) ')
+            xlabel('\bf u ')
+            ylabel('\bf v ')
             title(['\bf\fontsize{14} Subarray Pattern (dB) '; ...
                 "\bf\fontsize{12} Max Gain "+num2str(max(max(gain)))+" (dB) "])
         end
@@ -140,8 +140,8 @@ classdef Antenna < handle
             surf(az0,el0,gain)
             surf(cos(el).*sin(az),sin(el),gain)
             shading flat
-            xlabel('\bf Azimuth (deg) ')
-            ylabel('\bf Elevation (deg) ')
+            xlabel('\bf u ')
+            ylabel('\bf v ')
             title(['\bf\fontsize{14} Full Array Pattern (dB) '; ...
                 "\bf\fontsize{12} Max Gain "+num2str(max(max(gain)))+" (dB) "])
         end
