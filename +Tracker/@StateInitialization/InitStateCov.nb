@@ -1,0 +1,252 @@
+(* Content-type: application/vnd.wolfram.mathematica *)
+
+(*** Wolfram Notebook File ***)
+(* http://www.wolfram.com/nb *)
+
+(* CreatedBy='Mathematica 12.0' *)
+
+(*CacheID: 234*)
+(* Internal cache information:
+NotebookFileLineBreakTest
+NotebookFileLineBreakTest
+NotebookDataPosition[       158,          7]
+NotebookDataLength[      7737,        242]
+NotebookOptionsPosition[      7117,        224]
+NotebookOutlinePosition[      7462,        239]
+CellTagsIndexPosition[      7419,        236]
+WindowFrame->Normal*)
+
+(* Beginning of Notebook Content *)
+Notebook[{
+
+Cell[CellGroupData[{
+Cell[BoxData[
+ RowBox[{"\[IndentingNewLine]", 
+  RowBox[{
+   RowBox[{"ClearAll", "[", 
+    RowBox[{
+    "P11", ",", "P21", ",", "P31", ",", "P22", ",", "P32", ",", "P33"}], 
+    "]"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"$Assumptions", "=", 
+     RowBox[{"Thread", "[", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{
+        "R2", ",", "R3", ",", "R1", ",", "T32", ",", "T31", ",", "T21"}], 
+        "}"}], ">", "0"}], "]"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P11", " ", "=", " ", "R3"}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P21", " ", "=", " ", 
+     RowBox[{"R3", "/", "T32"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P31", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"R3", "/", "T31"}], "/", "T32"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P22", " ", "=", " ", 
+     RowBox[{
+      RowBox[{"(", 
+       RowBox[{"R2", " ", "+", " ", "R3"}], ")"}], "/", 
+      SuperscriptBox["T32", "2"]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P32", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"R2", "/", "T21"}], "/", 
+       SuperscriptBox["T32", "2"]}], " ", "+", " ", 
+      RowBox[{
+       RowBox[{"R3", "/", "T31"}], "/", 
+       SuperscriptBox["T32", "2"]}]}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"P33", " ", "=", " ", 
+    RowBox[{
+     RowBox[{
+      RowBox[{"R3", "/", 
+       SuperscriptBox["T31", "2"]}], "/", 
+      SuperscriptBox["T32", "2"]}], "+", 
+     RowBox[{
+      RowBox[{"R2", "/", 
+       SuperscriptBox["T21", "2"]}], "/", 
+      SuperscriptBox["T32", "2"]}], "+", 
+     RowBox[{
+      RowBox[{"R1", "/", 
+       SuperscriptBox["T31", "2"]}], "/", 
+      SuperscriptBox["T21", "2"]}]}]}], "\[IndentingNewLine]", 
+   "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"P", "=", 
+     RowBox[{"{", 
+      RowBox[{
+       RowBox[{"{", 
+        RowBox[{"P11", ",", "P21", ",", "P31"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"P21", ",", " ", "P22", ",", "P32"}], "}"}], ",", 
+       RowBox[{"{", 
+        RowBox[{"P31", ",", "P32", ",", "P33"}], "}"}]}], "}"}]}], ";"}], 
+   "\[IndentingNewLine]", 
+   RowBox[{"P", "//", "MatrixForm"}], "\[IndentingNewLine]", 
+   RowBox[{
+    RowBox[{"S", " ", "=", " ", 
+     RowBox[{
+      RowBox[{
+       RowBox[{"CholeskyDecomposition", "[", "P", "]"}], "\[Transpose]"}], "//",
+       "FullSimplify"}]}], ";"}], "\[IndentingNewLine]", 
+   RowBox[{"S", "//", "MatrixForm"}]}]}]], "Input",
+ CellChangeTimes->{{3.958300378709916*^9, 3.958300581240832*^9}, {
+  3.9583006576545115`*^9, 3.9583008684605713`*^9}, {3.95830089866829*^9, 
+  3.9583009022872305`*^9}, {3.9583009585804443`*^9, 3.9583010333715196`*^9}, {
+  3.9583010847068048`*^9, 3.958301206893276*^9}},
+ CellLabel->"In[30]:=",ExpressionUUID->"f79f9fe6-f126-48cd-a7fb-c0cdee48c51e"],
+
+Cell[BoxData[
+ RowBox[{
+  FractionBox["R1", 
+   RowBox[{
+    SuperscriptBox["T21", "2"], " ", 
+    SuperscriptBox["T31", "2"]}]], "+", 
+  FractionBox["R2", 
+   RowBox[{
+    SuperscriptBox["T21", "2"], " ", 
+    SuperscriptBox["T32", "2"]}]], "+", 
+  FractionBox["R3", 
+   RowBox[{
+    SuperscriptBox["T31", "2"], " ", 
+    SuperscriptBox["T32", "2"]}]]}]], "Output",
+ CellChangeTimes->{
+  3.958300492896846*^9, 3.9583005371374702`*^9, {3.9583005697483315`*^9, 
+   3.9583005818847218`*^9}, 3.958301037888941*^9, 3.958301094267141*^9, 
+   3.9583012084951305`*^9},
+ CellLabel->"Out[37]=",ExpressionUUID->"4e3de388-221b-4335-ba21-2a1059e727cf"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {"R3", 
+      FractionBox["R3", "T32"], 
+      FractionBox["R3", 
+       RowBox[{"T31", " ", "T32"}]]},
+     {
+      FractionBox["R3", "T32"], 
+      FractionBox[
+       RowBox[{"R2", "+", "R3"}], 
+       SuperscriptBox["T32", "2"]], 
+      RowBox[{
+       FractionBox["R2", 
+        RowBox[{"T21", " ", 
+         SuperscriptBox["T32", "2"]}]], "+", 
+       FractionBox["R3", 
+        RowBox[{"T31", " ", 
+         SuperscriptBox["T32", "2"]}]]}]},
+     {
+      FractionBox["R3", 
+       RowBox[{"T31", " ", "T32"}]], 
+      RowBox[{
+       FractionBox["R2", 
+        RowBox[{"T21", " ", 
+         SuperscriptBox["T32", "2"]}]], "+", 
+       FractionBox["R3", 
+        RowBox[{"T31", " ", 
+         SuperscriptBox["T32", "2"]}]]}], 
+      RowBox[{
+       FractionBox["R1", 
+        RowBox[{
+         SuperscriptBox["T21", "2"], " ", 
+         SuperscriptBox["T31", "2"]}]], "+", 
+       FractionBox["R2", 
+        RowBox[{
+         SuperscriptBox["T21", "2"], " ", 
+         SuperscriptBox["T32", "2"]}]], "+", 
+       FractionBox["R3", 
+        RowBox[{
+         SuperscriptBox["T31", "2"], " ", 
+         SuperscriptBox["T32", "2"]}]]}]}
+    },
+    GridBoxAlignment->{"Columns" -> {{Center}}, "Rows" -> {{Baseline}}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.958300492896846*^9, 3.9583005371374702`*^9, {3.9583005697483315`*^9, 
+   3.9583005818847218`*^9}, 3.958301037888941*^9, 3.958301094267141*^9, 
+   3.9583012084951305`*^9},
+ CellLabel->
+  "Out[39]//MatrixForm=",ExpressionUUID->"36d3770b-e69d-4936-aa7d-\
+331d72803fc8"],
+
+Cell[BoxData[
+ TagBox[
+  RowBox[{"(", "\[NoBreak]", GridBox[{
+     {
+      SqrtBox["R3"], "0", "0"},
+     {
+      FractionBox[
+       SqrtBox["R3"], "T32"], 
+      FractionBox[
+       SqrtBox["R2"], "T32"], "0"},
+     {
+      FractionBox[
+       SqrtBox["R3"], 
+       RowBox[{"T31", " ", "T32"}]], 
+      FractionBox[
+       SqrtBox["R2"], 
+       RowBox[{"T21", " ", "T32"}]], 
+      FractionBox[
+       SqrtBox["R1"], 
+       RowBox[{"T21", " ", "T31"}]]}
+    },
+    GridBoxAlignment->{"Columns" -> {{Center}}, "Rows" -> {{Baseline}}},
+    GridBoxSpacings->{"Columns" -> {
+        Offset[0.27999999999999997`], {
+         Offset[0.7]}, 
+        Offset[0.27999999999999997`]}, "Rows" -> {
+        Offset[0.2], {
+         Offset[0.4]}, 
+        Offset[0.2]}}], "\[NoBreak]", ")"}],
+  Function[BoxForm`e$, 
+   MatrixForm[BoxForm`e$]]]], "Output",
+ CellChangeTimes->{
+  3.958300492896846*^9, 3.9583005371374702`*^9, {3.9583005697483315`*^9, 
+   3.9583005818847218`*^9}, 3.958301037888941*^9, 3.958301094267141*^9, 
+   3.958301208554846*^9},
+ FontSize->24,
+ CellLabel->
+  "Out[41]//MatrixForm=",ExpressionUUID->"ad5e103d-3ec1-4eb5-a6d1-\
+cbb8c5ff9239"]
+}, Open  ]]
+},
+WindowSize->{759, 833},
+WindowMargins->{{-1348, Automatic}, {Automatic, 84}},
+FrontEndVersion->"12.0 for Microsoft Windows (64-bit) (April 8, 2019)",
+StyleDefinitions->"Default.nb"
+]
+(* End of Notebook Content *)
+
+(* Internal cache information *)
+(*CellTagsOutline
+CellTagsIndex->{}
+*)
+(*CellTagsIndex
+CellTagsIndex->{}
+*)
+(*NotebookFileOutline
+Notebook[{
+Cell[CellGroupData[{
+Cell[580, 22, 2837, 78, 284, "Input",ExpressionUUID->"f79f9fe6-f126-48cd-a7fb-c0cdee48c51e"],
+Cell[3420, 102, 640, 18, 51, "Output",ExpressionUUID->"4e3de388-221b-4335-ba21-2a1059e727cf"],
+Cell[4063, 122, 1885, 59, 111, "Output",ExpressionUUID->"36d3770b-e69d-4936-aa7d-331d72803fc8"],
+Cell[5951, 183, 1150, 38, 215, "Output",ExpressionUUID->"ad5e103d-3ec1-4eb5-a6d1-cbb8c5ff9239"]
+}, Open  ]]
+}
+]
+*)
+
+(* End of internal cache information *)
+
