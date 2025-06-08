@@ -66,7 +66,7 @@
 
 clc
 clearvars
-close all
+% close all
 
 startup_tcl
 
@@ -195,7 +195,7 @@ motion_models = [
 %   GMV: xDim = 4
 %   - maximum acceleration: maxAcc (m/s/s)
 %   - maneuver decorrelation time: tau (s)
-maxAcc = 9.8/5; % in m/s/s
+maxAcc = 1.0; % in m/s/s
 maxJrk = 0.1;
 tau = 25*Ts;   % maneuver decorrelation time (s)
 motion_model = Tracker.MotionModel( ...
@@ -213,6 +213,7 @@ state_init = Tracker.StateInitialization( ...
     "Type", "Three-Point", ...
     "VelMin", Vmin, ...
     "VelMax", Vmax, ...
+    "AccMax", maxAcc, ...
     "MotionModel", motion_model);
 % State initialization method - see displayTracksSwarm.m
 init_method = state_init.Type;

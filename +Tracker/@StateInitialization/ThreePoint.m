@@ -18,9 +18,13 @@ function [xNew, SNew, lgclNew] = ThreePoint(obj, tCur, zCur, SRCur)
 
 %%
 vLims = [obj.VelMin, obj.VelMax];
+accMax = obj.AccMax;
+geeMax = obj.GeeMax;
+cosPhiMax = cos(obj.PhiMax);
 xDim = obj.MotionModelObject.StateDim;
 [zDim, numMeas] = size(zCur);
 Z00 = zeros(zDim,zDim);
+zD = zeros(3-zDim,1);
 
 lgclNew = false(1,numMeas);
 
@@ -56,13 +60,21 @@ if numMeas > 0
 
         % Velocity and speed
         v21 = bsxfun(@rdivide,del_z21,repmat(del_t21,[2,1,1]));
-        vMag21 = sqrt(mySqueeze(sum(v21.*v21,1)));
+        vMag21 = sqrt(sum(v21.*v21,1));
+        sqvMag21 = mySqueeze(vMag21);
+        vHat21 = bsxfun(@rdivide,v21,vMag21);
         v32 = bsxfun(@rdivide,del_z32,repmat(del_t32,[2,1,1]));
-        vMag32 = sqrt(mySqueeze(sum(v32.*v32,1)));
+        vMag32 = sqrt(sum(v32.*v32,1));
+        sqvMag32 = mySqueeze(vMag32);
+        vHat32 = bsxfun(@rdivide,v32,vMag32);
 
         % Apply speed limits
-        lgcl_vMag21 = sparse((vLims(1) < vMag21) & (vMag21 < vLims(2)));
-        lgcl_vMag32 = sparse((vLims(1) < vMag32) & (vMag32 < vLims(2)));
+        lgcl_vMag21 = sparse((vLims(1) < sqvMag21) & (sqvMag21 < vLims(2)));
+        lgcl_vMag32 = sparse((vLims(1) < sqvMag32) & (sqvMag32 < vLims(2)));
+
+        % Apply max-acceleration filter
+        % aMag = sqrt(mySqueeze(sum((v32-v21).*(v32-v21),1)));
+        % lgcl_aMax = (aMag < accMax)
 
         idx_triplets = FindConnectedPaths(lgcl_vMag21, lgcl_vMag32);
         if ~isempty(idx_triplets)
@@ -73,15 +85,26 @@ if numMeas > 0
         for k = 1:size(idx_triplets, 1)
             % State vector
             % - position
-            sp = cat( 2, sp, z3(:, idx_triplets(k,3)) );
             % - velocity
             v = v32(:, idx_triplets(k,3), idx_triplets(k,2));
-            sv = cat( 2, sv, v );
             % - acceleration
             a = v - v21(:, idx_triplets(k,2), idx_triplets(k,1));
             aDen = del_t32(1, idx_triplets(k,3), idx_triplets(k,2)) ...
                 + del_t21(1, idx_triplets(k,2), idx_triplets(k,1));
             a = a./aDen;
+            % - angle limit: c = cos(phi) == vH32.vH21
+            c = dot(vHat32(:,idx_triplets(k,3), idx_triplets(k,2)), ...
+                vHat21(:,idx_triplets(k,2), idx_triplets(k,1)));
+            % - g-force limit
+            vM = (v + v21(:, idx_triplets(k,2), idx_triplets(k,1)))/2;
+            ac = vecnorm(cross([vM;zD], [a;zD]))./vecnorm(vM);
+            g = ac/9.81;
+            if vecnorm(a) > accMax || abs(c) < cosPhiMax || g > geeMax
+                lgclNew(idx_triplets(k,3)) = false;
+                continue;
+            end
+            sp = cat( 2, sp, z3(:, idx_triplets(k,3)) );
+            sv = cat( 2, sv, v );
             sa = cat( 2, sa, a );
 
             % State covariance

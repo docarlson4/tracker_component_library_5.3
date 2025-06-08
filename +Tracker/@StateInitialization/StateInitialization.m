@@ -17,6 +17,8 @@ classdef StateInitialization < handle
         VelMax
         AccMax
         JrkMax
+        GeeMax % max number of g's
+        PhiMax
         MotionModelObject
     end
     
@@ -29,6 +31,8 @@ classdef StateInitialization < handle
             DEFAULT.VelMax = 100;
             DEFAULT.AccMax = 10;
             DEFAULT.JrkMax = 1;
+            DEFAULT.GeeMax = 10;
+            DEFAULT.PhiMax = 60*pi/180;
             DEFAULT.MotionModelObject = "NCV";
 
             p = inputParser;
