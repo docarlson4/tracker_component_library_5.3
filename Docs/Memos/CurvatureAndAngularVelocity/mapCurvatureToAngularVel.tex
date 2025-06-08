@@ -1,0 +1,131 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{bm}
+
+\begin{document}
+	
+	\section*{Mapping Local Curvature of a Trajectory to Angular Speed and g-Force}
+	
+	\subsection*{Background}
+	
+	- \textbf{Curvature} $\kappa$ at a point on a trajectory measures how sharply the path bends.
+	- \textbf{Angular speed} $\omega$ is the rate at which the direction of the velocity vector changes over time.
+	- \textbf{Centripetal acceleration} $a_c$ corresponds to the lateral acceleration felt as g-force when moving along a curved path.
+	- Standard gravity is denoted $g_0 \approx 9.81\, m/s^2$.
+	
+	\subsection*{Relationship Between Curvature and Angular Speed}
+	
+	For a particle moving along a trajectory with scalar speed $v$ and curvature $\kappa$, the angular velocity $\omega$ is:
+	
+	\[
+	\boxed{
+		\omega = v \cdot \kappa
+	}
+	\]
+	
+	where
+	\begin{itemize}
+		\item $\omega$ is the angular velocity (radians per second),
+		\item $v = \|\bm{v}\|$ is the speed (magnitude of velocity vector),
+		\item $\kappa$ is the curvature (inverse radius of curvature).
+	\end{itemize}
+	
+	\subsection*{Curvature for Parametric 2D Trajectory}
+	
+	Given a trajectory parameterized as $\bm{r}(t) = (x(t), y(t))$, curvature at time $t$ is
+	
+	\[
+	\kappa(t) = \frac{|x'(t) y''(t) - y'(t) x''(t)|}{\left( (x'(t))^2 + (y'(t))^2 \right)^{3/2}},
+	\]
+	
+	where primes denote derivatives with respect to $t$.
+	
+	\subsection*{Estimating Curvature and Angular Speed From Three Points}
+	
+	Given three time-position points
+	
+	\[
+	(t_1, \bm{r}_1), \quad (t_2, \bm{r}_2), \quad (t_3, \bm{r}_3),
+	\]
+	
+	where $\bm{r}_i = (x_i, y_i)$, estimate velocity and acceleration at $t_2$ as:
+	
+	\[
+	\bm{v}_2 \approx \frac{\bm{r}_3 - \bm{r}_1}{t_3 - t_1},
+	\]
+	
+	\[
+	\bm{a}_2 \approx \frac{\bm{r}_3 - 2 \bm{r}_2 + \bm{r}_1}{\left(\frac{t_3 - t_1}{2}\right)^2}.
+	\]
+	
+	The curvature at $t_2$ is then
+	
+	\[
+	\kappa = \frac{\left| \bm{v}_2 \times \bm{a}_2 \right|}{\|\bm{v}_2\|^3}.
+	\]
+	
+	For 2D vectors $\bm{v}_2 = (v_x, v_y)$ and $\bm{a}_2 = (a_x, a_y)$, the cross product simplifies to a scalar:
+	
+	\[
+	\bm{v}_2 \times \bm{a}_2 = v_x a_y - v_y a_x.
+	\]
+	
+	Speed at $t_2$ is
+	
+	\[
+	v = \|\bm{v}_2\| = \sqrt{v_x^2 + v_y^2}.
+	\]
+	
+	Finally, the angular speed is
+	
+	\[
+	\omega = v \kappa = \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|^2}.
+	\]
+	
+	\subsection*{Mapping Angular Speed to Centripetal Acceleration and g-Force}
+	
+	The centripetal acceleration $a_c$ is related to angular speed and radius of curvature $R = \frac{1}{\kappa}$ by:
+	
+	\[
+	a_c = \omega^2 R.
+	\]
+	
+	Substituting $\omega = v \kappa$ gives
+	
+	\[
+	a_c = v^2 \kappa.
+	\]
+	
+	Using the three-point approximation expressions, this simplifies to:
+	
+	\[
+	a_c = \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|}.
+	\]
+	
+	To convert centripetal acceleration to g-force (units of standard gravity $g_0 \approx 9.81\, m/s^2$):
+	
+	\[
+	\boxed{
+		g_{\text{force}} = \frac{a_c}{g_0} = \frac{1}{9.81} \cdot \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|}.
+	}
+	\]
+	
+	---
+	
+	\subsection*{Summary}
+	
+	\[
+	\boxed{
+		\begin{aligned}
+			\bm{v}_2 &= \frac{\bm{r}_3 - \bm{r}_1}{t_3 - t_1}, \\
+			\bm{a}_2 &= \frac{\bm{r}_3 - 2 \bm{r}_2 + \bm{r}_1}{\left(\frac{t_3 - t_1}{2}\right)^2}, \\
+			\kappa &= \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|^3}, \\
+			\omega &= v \cdot \kappa = \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|^2}, \\
+			a_c &= v^2 \kappa = \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|}, \\
+			g_{\text{force}} &= \frac{a_c}{9.81} = \frac{1}{9.81} \cdot \frac{|\bm{v}_2 \times \bm{a}_2|}{\|\bm{v}_2\|}.
+		\end{aligned}
+	}
+	\]
+	
+\end{document}
