@@ -165,7 +165,7 @@ function val=invCDF(prob,lambda)
 %
 %September 2015 David F. Crouse, Naval Research Laboratory, Washington D.C.    
     
-    val=-log(1-prob)/lambda;
+    val=-log(1-prob)./lambda;
 end
 
 function momentVal=momentGenFun(lambda,numDerivs,t)
