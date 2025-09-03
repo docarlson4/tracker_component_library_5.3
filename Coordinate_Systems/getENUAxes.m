@@ -24,7 +24,7 @@ function [u,c]=getENUAxes(plhPoint,justVertical,a,f)
 %                 value in Constants.WGS84Flattening is used.
 %
 %OUTPUTS: u u(:,1), u(:,2), and u(:,3) are respectively the East, North and
-%           Up unit vectors.
+%           Up unit vectors. [CE] - ENU to ECEF transform
 %         c c(1), c(2), and c(3) are the respective magnitudes of the
 %           derivative of the Cartesian position with respect to latitude,
 %           longitude, and height.
