@@ -14,6 +14,8 @@ classdef Antenna < handle
         NumSubHorz % number of subarrays horizontally
         NumElemVert % number of elements per subarray vertically
         NumElemHorz % number of elements per subarray horizontally
+        AzScan
+        ElScan
     end
 
     properties(Access=private)
@@ -36,6 +38,8 @@ classdef Antenna < handle
             DEFAULT.NumSubHorz = 4;
             DEFAULT.NumElemVert = 8;
             DEFAULT.NumElemHorz = 2;
+            DEFAULT.AzScan = 0;
+            DEFAULT.ElScan = 0;
 
             p = inputParser;
 
@@ -66,8 +70,8 @@ classdef Antenna < handle
             dx = obj.DeltaElemHorz;
             dy = obj.DeltaElemVert;
             % k = 2*pi/obj.Wavelength;
-            kx = obj.k*sin(az).*cos(el);
-            ky = obj.k*sin(el);
+            kx = obj.k*(sin(az).*cos(el) - sin(obj.AzScan).*cos(obj.ElScan));
+            ky = obj.k*(sin(el) - sin(obj.ElScan));
             af = zeros(size(az));
             idxC = (1:obj.NumElemHorz);
             idxC = idxC - mean(idxC);
@@ -86,8 +90,8 @@ classdef Antenna < handle
             dx = obj.DeltaElemHorz * obj.NumElemHorz;
             dy = obj.DeltaElemVert * obj.NumElemVert;
             % k = 2*pi/obj.Wavelength;
-            kx = obj.k*sin(az).*cos(el);
-            ky = obj.k*sin(el);
+            kx = obj.k*(sin(az).*cos(el) - sin(obj.AzScan).*cos(obj.ElScan));
+            ky = obj.k*(sin(el) - sin(obj.ElScan));
             af = zeros(size(az));
             idxC = (1:obj.NumSubHorz);
             idxC = idxC - mean(idxC);
@@ -159,6 +163,12 @@ classdef Antenna < handle
             N = obj.NumElemHorz * obj.NumSubHorz;
             x = calcBeamwidth(obj,N);
             val = 2*asin(x./(obj.k*obj.DeltaElemHorz) + 0);
+        end
+
+        function val = ElBeamwidth(obj)
+            N = obj.NumElemVert * obj.NumSubVert;
+            x = calcBeamwidth(obj,N);
+            val = 2*asin(x./(obj.k*obj.DeltaElemVert) + 0);
         end
     end
 
