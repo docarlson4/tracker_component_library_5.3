@@ -4,15 +4,21 @@ classdef Antenna < handle
     
     properties
         % Cosine N element pattern
-        CosineNVert % vertiacl exponent
+        CosineNVert % vertical exponent
         CosineNHorz % horizontal exponent
         % Array pattern
         Wavelength % operational wavelength
-        DeltaElem % element spacing
+        DeltaElemHorz % element spacing
+        DeltaElemVert % element spacing
         NumSubVert % number of subarrays vertically
         NumSubHorz % number of subarrays horizontally
         NumElemVert % number of elements per subarray vertically
         NumElemHorz % number of elements per subarray horizontally
+    end
+
+    properties(Access=private)
+        % c0 = 299792458;
+        k
     end
     
     methods
@@ -24,7 +30,8 @@ classdef Antenna < handle
             DEFAULT.CosineNHorz = 2;
             DEFAULT.CosineNVert = 2;
             DEFAULT.Wavelength = 0.03;
-            DEFAULT.DeltaElem = DEFAULT.Wavelength/2;
+            DEFAULT.DeltaElemVert = DEFAULT.Wavelength/2;
+            DEFAULT.DeltaElemHorz = DEFAULT.Wavelength/2;
             DEFAULT.NumSubVert = 1;
             DEFAULT.NumSubHorz = 4;
             DEFAULT.NumElemVert = 8;
@@ -41,6 +48,8 @@ classdef Antenna < handle
             for k = 1:numel(param_names)
                 obj.(param_names{k}) = p.Results.(param_names{k});
             end
+
+            obj.k = 2*pi./obj.Wavelength;
         end
         
         function G = ElementGain(obj,az,el)
@@ -54,11 +63,11 @@ classdef Antenna < handle
         end
 
         function G = SubarrayGain(obj,az,el)
-            dx = obj.DeltaElem;
-            dy = obj.DeltaElem;
-            k = 2*pi/obj.Wavelength;
-            kx = k*sin(az).*cos(el);
-            ky = k*sin(el);
+            dx = obj.DeltaElemHorz;
+            dy = obj.DeltaElemVert;
+            % k = 2*pi/obj.Wavelength;
+            kx = obj.k*sin(az).*cos(el);
+            ky = obj.k*sin(el);
             af = zeros(size(az));
             idxC = (1:obj.NumElemHorz);
             idxC = idxC - mean(idxC);
@@ -74,11 +83,11 @@ classdef Antenna < handle
         end
 
         function G = PhasedArrayGain(obj,az,el)
-            dx = obj.DeltaElem * obj.NumElemHorz;
-            dy = obj.DeltaElem * obj.NumElemVert;
-            k = 2*pi/obj.Wavelength;
-            kx = k*sin(az).*cos(el);
-            ky = k*sin(el);
+            dx = obj.DeltaElemHorz * obj.NumElemHorz;
+            dy = obj.DeltaElemVert * obj.NumElemVert;
+            % k = 2*pi/obj.Wavelength;
+            kx = obj.k*sin(az).*cos(el);
+            ky = obj.k*sin(el);
             af = zeros(size(az));
             idxC = (1:obj.NumSubHorz);
             idxC = idxC - mean(idxC);
@@ -145,6 +154,42 @@ classdef Antenna < handle
             title(['\bf\fontsize{14} Full Array Pattern (dB) '; ...
                 "\bf\fontsize{12} Max Gain "+num2str(max(max(gain)))+" (dB) "])
         end
+
+        function val = AzBeamwidth(obj)
+            N = obj.NumElemHorz * obj.NumSubHorz;
+            x = calcBeamwidth(obj,N);
+            val = 2*asin(x./(obj.k*obj.DeltaElemHorz) + 0);
+        end
+    end
+
+    methods(Access=private)
+        function x = calcBeamwidth(~,N)
+            f = @(x) sin(N*x/2)./(N*sin(x/2)) - 1/sqrt(2);
+            fp = @(x) ( N*sin(x/2).*cos(N*x/2) - cos(x/2).*sin(N*x/2) ) ...
+                ./ (2*N*sin(x/2).^2);
+            max_iter = 100;
+            tol = 1e-6;
+            delx = inf;
+            iter = 0;
+            x = 0.1;
+            while (iter < max_iter) && (abs(delx) > tol)
+                delx = f(x)./fp(x);
+                x = x - delx;
+            end
+        end
     end
 end
+
+
+
+
+
+
+
+
+
+
+
+
+
 
