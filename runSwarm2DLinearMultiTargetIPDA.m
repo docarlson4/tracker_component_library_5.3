@@ -66,6 +66,8 @@ clearvars
 
 startup_tcl
 
+addpath Utilities\
+
 MyConstants
 
 dbstop if error
