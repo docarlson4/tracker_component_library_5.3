@@ -75,7 +75,7 @@ classdef RadarTransmitter < handle
                 options.bandwidth  (1,1) double {mustBeNonnegative} = 0
                 options.waveform   (1,:) char   {mustBeMember(options.waveform, ...
                                             {'rect','lfm','barker','custom'})} = 'rect'
-                options.phaseCode  (:,1) double = []
+                options.phaseCode  (:,1) double = pi * [0 0 0 0 0 1 1 0 0 1 0 1 0]';
                 options.losses_dB  (1,1) double = 0
             end
 
@@ -127,24 +127,16 @@ classdef RadarTransmitter < handle
                 fs (1,1) double {mustBePositive}
             end
 
-            dt = 1/fs;
-            t  = (0 : dt : obj.tau - dt).';
+            t  = (0 : 1/fs : obj.tau - 1/fs).';
             N  = numel(t);
 
             switch obj.waveform
                 case 'rect'
-                    s = ones(N, 1);
-
+                    s = Radar.RadarTransmitter.waveRect(N);
                 case 'lfm'
-                    tc = t - obj.tau/2;
-                    s  = exp(1j * pi * (obj.bandwidth/obj.tau) * tc.^2);
-
+                    s = Radar.RadarTransmitter.waveLFM(t, obj.tau, obj.bandwidth);
                 case {'barker','custom'}
-                    Nc    = numel(obj.phaseCode);
-                    chipN = floor(N / Nc);
-                    sChip = exp(1j * repelem(obj.phaseCode, chipN));
-                    s     = zeros(N, 1);
-                    s(1:numel(sChip)) = sChip;
+                    s = Radar.RadarTransmitter.wavePhaseCode(N, obj.phaseCode);
             end
 
             s = s * 10^(-obj.losses_dB / 20);
@@ -183,7 +175,7 @@ classdef RadarTransmitter < handle
             [s, t] = obj.generatePulse(fs);
             N      = numel(s);
 
-            dopplerAxis = (-nDoppler/2:nDoppler/2-1)*fs/nDoppler; %linspace(-fs/2, fs/2, nDoppler);
+            dopplerAxis = (-nDoppler/2:nDoppler/2-1) * (fs/nDoppler);
             delayAxis   = (-(N-1) : (N-1)).' / fs;
 
             sSteered = s .* exp(1j * 2*pi * dopplerAxis .* t);
@@ -194,12 +186,11 @@ classdef RadarTransmitter < handle
             corr = ifft(conj(S) .* SS, [], 1);
 
             chi = [corr(Nfft-N+2:Nfft, :); corr(1:N, :)];
-            chi = abs(chi);
-            chi = chi / max(chi(:));
+            chi = abs(chi) / max(abs(corr(:)));
         end
 
         % --------------------------------------------------------------
-        function [Pout_dB, BW] = spectrum(obj, fs, nFFT)
+        function [Pout_dB, f, BW] = spectrum(obj, fs, nFFT)
         % spectrum(fs, nFFT)  ->  PSD [dB, peak=0] and 3-dB BW estimate [Hz].
             arguments
                 obj
@@ -210,11 +201,12 @@ classdef RadarTransmitter < handle
             if nFFT == 0
                 nFFT = 2^nextpow2(16 * round(obj.tau * fs));
             end
-            s       = obj.generatePulse(fs);
+            s = obj.generatePulse(fs);
             S       = fftshift(fft(s, nFFT));
             Sp      = abs(S).^2;
             Pout_dB = 10*log10(Sp / max(Sp));
             BW      = (sum(Sp >= max(Sp)/2) / nFFT) * fs;
+            f = (-nFFT/2:nFFT/2-1)*fs/nFFT;
         end
 
         % --------------------------------------------------------------
@@ -234,7 +226,7 @@ classdef RadarTransmitter < handle
             fprintf('    +/-fdamb     = %.4g Hz\n',  obj.fdamb);
             fprintf('    EIRP         = %.4g dBW\n', obj.EIRP_dBW);
             fprintf('    waveform     = %s\n',       obj.waveform);
-            if ~isempty(obj.phaseCode)
+            if ismember(obj.waveform, {'barker','custom'})
                 fprintf('    code length  = %d chips\n', numel(obj.phaseCode));
             end
             fprintf('    losses       = %.4g dB\n',  obj.losses_dB);
@@ -243,8 +235,39 @@ classdef RadarTransmitter < handle
     end   % public methods
 
     % ==================================================================
-    methods (Access = private, Static)
+    methods (Static, Access = private)
 
+        % --------------------------------------------------------------
+        function s = waveRect(N)
+        % Unit-amplitude rectangular envelope; N samples.
+            s = ones(N, 1);
+        end
+
+        % --------------------------------------------------------------
+        function s = waveLFM(t, tau, B)
+        % Linear FM (chirp) envelope.
+        %
+        %   Instantaneous frequency sweeps linearly over [-B/2, +B/2]
+        %   centred on the pulse midpoint.  Quadratic phase argument:
+        %     phi(t) = pi * (B/tau) * (t - tau/2)^2
+            tc = t - tau/2;
+            s  = exp(1j * pi * (B/tau) * tc.^2);
+        end
+
+        % --------------------------------------------------------------
+        function s = wavePhaseCode(N, code)
+        % Phase-coded envelope from a column vector of chip phases [rad].
+        %
+        %   Chip boundaries are placed at round(k*N/Nc) for k = 0..Nc,
+        %   distributing the N samples evenly with at most 1-sample
+        %   rounding per boundary — no tail truncation or zero-padding.
+            Nc       = numel(code);
+            edges    = round((0:Nc) * (N/Nc));   % (Nc+1) boundary indices
+            chipLens = diff(edges);               % samples per chip, sum == N
+            s        = exp(1j * repelem(code, chipLens));
+        end
+
+        % --------------------------------------------------------------
         function str = fmtFreq(f)
             if     f >= 1e9, str = sprintf('%.4g GHz', f/1e9);
             elseif f >= 1e6, str = sprintf('%.4g MHz', f/1e6);
