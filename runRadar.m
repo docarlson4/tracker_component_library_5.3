@@ -32,6 +32,9 @@ tx = Radar.RadarTransmitter(fc, Pt, tauP, PRF, ...
 
 tx;   % calls disp()
 
+rx = Radar.RadarReceiver(4,BW);
+rx
+
 Fs = 2*BW;
 Ts = 1/Fs;
 nFFT = 256;
