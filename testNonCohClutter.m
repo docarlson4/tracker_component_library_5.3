@@ -37,4 +37,4 @@ sc_obj = SeaClutter.SeaClutter('Shape', nu_obj.Shape);
 sc_obj.GenClutter
 sc_obj.PlotTexture("Image")
 
-
+nc_obj = SeaClutter.NonCoherentClutter(CorrCoeffRng=@(x,tau) exp(-abs(x)/tau))

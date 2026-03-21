@@ -3,10 +3,19 @@ classdef NonCoherentClutter < handle
     %sea clutter data intended for non-Doppler processing using a single
     %channel antenna: thus, the CPI is equal to one single PRI (NFFT = 1).
     %
-    %   CONSTRUCTION
-    %
-    %   NAMED PARAMETERS (with defaults)
-    %
+    % CONSTRUCTION
+    %   a = NonCoherentClutter()
+    %   a = NonCoherentClutter(Name=Value, ...)
+    % 
+    % NAMED PARAMETERS (with defaults)
+    %   TextureModel (1,1) string   - ["Gamma", "InverseGamma"]
+    %   ShapeParam (1,1) double     - [nu]
+    %   CorrCoeffRng (1,1) function_handle = @deal
+    % 
+    % 
+    % 
+    % 
+    % 
     % [0] Kemkemian, S., Lupinski, L., Corretja, V., Cottron, R., & Watts,
     % S. (2015, May). Performance assessment of multi-channel radars using
     % simulated sea clutter. In 2015 IEEE Radar Conference (RadarCon) (pp.
@@ -16,18 +25,15 @@ classdef NonCoherentClutter < handle
     %  Public properties
     % -----------------------------------------------------------------
     properties
-        Type
-        Property1
+        TextureModel (1,1) string = "Gamma" % ["Gamma", "InverseGamma"]
+        ShapeParam (1,1) double = 1    % [nu]
+        CorrCoeffRng (1,1) function_handle = @deal
     end
 
     % -----------------------------------------------------------------
     %  Private properties
     % -----------------------------------------------------------------
     properties (Access = private)
-        expectedTypes = [
-            "Type1"
-            "Type2"
-            ]
     end
 
     % -----------------------------------------------------------------
@@ -38,19 +44,18 @@ classdef NonCoherentClutter < handle
     end
 
     methods
-        function obj = NonCoherentClutter(options)
+        function obj = NonCoherentClutter(opts)
             %NONCOHERENTCLUTTER Construct an instance of this class
             arguments
-                options.Type = "Type1";
-                options.Property1 = "Property1";
+                opts.TextureModel (1,1) string = "Gamma" % ["Gamma", "InverseGamma"]
+                opts.ShapeParam (1,1) double = 1    % [nu]
+                opts.CorrCoeffRng (1,1) function_handle = @deal
             end
-            fields = fieldnames(options);
+            fields = fieldnames(opts);
             for i = 1:numel(fields)
-                obj.(fields{i}) = options.(fields{i});
+                obj.(fields{i}) = opts.(fields{i});
             end
 
-            % Make sure the type of motion model is avaialble
-            verify_type(obj)
         end
 
         % ---- Dependent getter --------------------------------------- %
@@ -58,23 +63,9 @@ classdef NonCoherentClutter < handle
             k = 2*pi / obj.Wavelength;
         end
 
-        function ShowTypes(obj)
-            disp(obj.expectedTypes)
-        end
     end % public methods
 
     methods (Access = private)
-        % Make sure the type of motion model is available
-        function verify_type(obj)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            if ~contains(obj.expectedTypes, obj.Type)
-                strJ = strjoin(obj.expectedTypes,", ");
-                str = sprintf('%s', strJ);
-                error('Wrong type. Input Type \"%s\" must be one of \"%s\".', ...
-                    obj.Type, str)
-            end
-        end
     end % private methods
 
 end % classdef
