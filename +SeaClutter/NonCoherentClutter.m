@@ -25,9 +25,11 @@ classdef NonCoherentClutter < handle
     %  Public properties
     % -----------------------------------------------------------------
     properties
-        TextureModel (1,1) string = "Gamma" % ["Gamma", "InverseGamma"]
-        ShapeParam (1,1) double = 1    % [nu]
-        CorrCoeffRng (1,1) function_handle = @deal
+        TextureModel %(1,1) string = "Gamma" % ["Gamma", "InverseGamma"]
+        ShapeParam %(1,1) double = 1    % [nu]
+        CorrCoeffRng %(1,1) function_handle = @deal
+        NumRange %(1,1) double {mustBePositive} = 64;
+        NumAzimuth %(1,1) double {mustBePositive} = 128;
     end
 
     % -----------------------------------------------------------------
@@ -39,8 +41,8 @@ classdef NonCoherentClutter < handle
     % -----------------------------------------------------------------
     %  Dependent property — recomputed from Wavelength automatically
     % -----------------------------------------------------------------
-    properties (Dependent, SetAccess = private)
-        k   % wavenumber 2π/λ (rad/m)
+    properties (Dependent, GetAccess = public, SetAccess = private)
+        ScaleParam
     end
 
     methods
@@ -48,8 +50,10 @@ classdef NonCoherentClutter < handle
             %NONCOHERENTCLUTTER Construct an instance of this class
             arguments
                 opts.TextureModel (1,1) string = "Gamma" % ["Gamma", "InverseGamma"]
-                opts.ShapeParam (1,1) double = 1    % [nu]
+                opts.ShapeParam (1,1) double {mustBePositive} = 1.0 % [nu]
                 opts.CorrCoeffRng (1,1) function_handle = @deal
+                opts.NumRange (1,1) double {mustBePositive} = 64;
+                opts.NumAzimuth (1,1) double {mustBePositive} = 128;
             end
             fields = fieldnames(opts);
             for i = 1:numel(fields)
@@ -59,8 +63,8 @@ classdef NonCoherentClutter < handle
         end
 
         % ---- Dependent getter --------------------------------------- %
-        function k = get.k(obj)
-            k = 2*pi / obj.Wavelength;
+        function value = get.ScaleParam(obj)
+            value = 1/obj.ShapeParam;
         end
 
     end % public methods
