@@ -54,6 +54,7 @@ classdef RadarReceiver < handle
         kTBF_dBW        % Thermal noise power at Bn  [dBW]
         MDS_dBW         % Minimum detectable signal (SNR=0 dB, incl. Rx losses) [dBW]
         dynamicRange_dB % ADC SFDR: 6.02*nBits + 1.76 dB  (Inf for ideal)
+        rangeRes        % Range resolution
     end
 
     % ------------------------------------------------------------------
@@ -105,6 +106,9 @@ classdef RadarReceiver < handle
             else
                 v = 6.02 * obj.nBits + 1.76;
             end
+        end
+        function v = get.rangeRes(obj)
+            v = obj.c0/(2*obj.Bn);
         end
 
         % --------------------------------------------------------------
@@ -254,6 +258,7 @@ classdef RadarReceiver < handle
             else
                 fprintf('    nBits        = ideal\n');
             end
+            fprintf('    RangeRes     = %.4g m\n',   obj.rangeRes);
         end
 
     end   % public methods
