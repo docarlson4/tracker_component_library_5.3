@@ -87,11 +87,7 @@ The compound model you've already implemented (gamma texture × Rayleigh speckle
 
 ---
 
-# 
-
-## Velocity Spread in Sea Clutter — A Deep Dive
-
----
+# Velocity Spread in Sea Clutter — A Deep Dive
 
 ### Physical Origins
 

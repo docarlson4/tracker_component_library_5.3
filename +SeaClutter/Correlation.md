@@ -30,6 +30,8 @@ So: **texture is correlated, speckle is white**, and the total clutter statistic
 
 ---
 
+# Frequency Agility Decorrelation
+
 Yes, absolutely correct — and this is an important distinction that the basic compound model literature sometimes glosses over.
 
 ## Coherent CPI: Speckle IS Correlated
