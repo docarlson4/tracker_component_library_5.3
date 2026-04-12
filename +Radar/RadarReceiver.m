@@ -170,8 +170,9 @@ classdef RadarReceiver < handle
             Gr   = 10^(Gr_dBi  / 10);
             Ltot = 10^((tx.losses_dB + obj.losses_dB) / 10);
             lam  = tx.lambda;
+            TBP = tx.timeBandwidthProduct;
 
-            num    = tx.Pt * Gt * Gr * lam^2 * sigma_m2;
+            num    = tx.Pt * Gt * Gr * lam^2 * sigma_m2 * TBP;
             denom  = (4*pi)^3 * R_m.^4 * Ltot;
 
             Pr_W   = num ./ denom;
