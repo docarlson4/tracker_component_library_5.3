@@ -20,6 +20,9 @@ dbstop if error
 
 %%
 
-ant_obj = Tracker.Antenna
-ant_obj.PlotFullPat
-ant_obj.PlotSubarrayPat
+ant_obj = Radar.Antenna
+ant_obj.PlotFullPat;
+ant_obj.PlotSubarrayPat;
+ant_obj.AzBeamwidth
+ant_obj.ElBeamwidth
+
