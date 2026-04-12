@@ -263,7 +263,7 @@ classdef Antenna < handle
             psi_hp = 2*u_root;
         end
 
-        function hpbw = hpbw_from_psi(obj, psi_hp, kd, beta)
+        function hpbw = hpbw_from_psi(~, psi_hp, kd, beta)
             % Exact angle-space HPBW from psi_hp, handling arccos domain clamp.
             % Beam center at psi=0: cos(theta0) = beta/kd
             % Half-power: cos(theta_hp) = (+-psi_hp + beta)/kd
@@ -275,8 +275,8 @@ classdef Antenna < handle
             c_plus  = max(-1, min(1, c_plus));
             c_minus = max(-1, min(1, c_minus));
 
-            theta_plus  = acosd(c_plus);
-            theta_minus = acosd(c_minus);
+            theta_plus  = acos(c_plus);
+            theta_minus = acos(c_minus);
 
             hpbw = abs(theta_minus - theta_plus);
         end
