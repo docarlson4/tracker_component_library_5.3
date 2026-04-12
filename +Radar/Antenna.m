@@ -146,15 +146,27 @@ classdef Antenna < handle
         function bw = AzBeamwidth(obj)
             %AZBEAMWIDTH  3-dB azimuth beamwidth (radians).
             N  = obj.NumElemHorz * obj.NumSubHorz;
-            x  = obj.calcBeamwidth(N);
-            bw = 2 * asin(x / (obj.k * obj.DeltaElemHorz));
+            % x  = obj.calcBeamwidth(N);
+            % bw = 2 * asin(x / (obj.k * obj.DeltaElemHorz));
+
+            kd = obj.k * obj.DeltaElemHorz;
+            beta = kd * sin(obj.AzScan);
+            psi_hp = snic_root(obj, N);
+            bw = hpbw_from_psi(obj, psi_hp, kd, beta);
+            
         end
 
         function bw = ElBeamwidth(obj)
             %ELBEAMWIDTH  3-dB elevation beamwidth (radians).
             N  = obj.NumElemVert * obj.NumSubVert;
-            x  = obj.calcBeamwidth(N);
-            bw = 2 * asin(x / (obj.k * obj.DeltaElemVert));
+            % x  = obj.calcBeamwidth(N);
+            % bw = 2 * asin(x / (obj.k * obj.DeltaElemVert));
+
+            kd = obj.k * obj.DeltaElemVert;
+            beta = kd * sin(obj.ElScan);
+            psi_hp = snic_root(obj, N);
+            bw = hpbw_from_psi(obj, psi_hp, kd, beta);
+            
         end
 
         % ==============================================================
@@ -237,7 +249,39 @@ classdef Antenna < handle
             end
         end
 
-        function [az, el, gain] = evalPattern(obj, gainFcn, az0, el0, floorDB)
+        function psi_hp = snic_root(~, N)
+            % exact: solve sin(N*u)/sin(u) = N/sqrt(2) for u in (0, pi/N)
+            % equivalently f(u) = sqrt(2)*sin(N*u) - N*sin(u) = 0
+            f = @(u) sqrt(2)*sin(N*u) - N*sin(u);
+
+            % bracket: u=0 is f=0 (trivial), first non-trivial root < pi/N
+            % scan for sign change
+            u_test = linspace(1e-6, pi/N - 1e-6, 2000);
+            fv     = f(u_test);
+            idx    = find(diff(sign(fv)) < 0, 1); % first negative crossing
+            u_root = fzero(f, [u_test(idx), u_test(idx+1)]);
+            psi_hp = 2*u_root;
+        end
+
+        function hpbw = hpbw_from_psi(obj, psi_hp, kd, beta)
+            % Exact angle-space HPBW from psi_hp, handling arccos domain clamp.
+            % Beam center at psi=0: cos(theta0) = beta/kd
+            % Half-power: cos(theta_hp) = (+-psi_hp + beta)/kd
+
+            c_plus  = ( psi_hp + beta) / kd;
+            c_minus = (-psi_hp + beta) / kd;
+
+            % clamp to valid arccos domain (scan loss / endfire boundary)
+            c_plus  = max(-1, min(1, c_plus));
+            c_minus = max(-1, min(1, c_minus));
+
+            theta_plus  = acosd(c_plus);
+            theta_minus = acosd(c_minus);
+
+            hpbw = abs(theta_minus - theta_plus);
+        end
+
+        function [az, el, gain] = evalPattern(~, gainFcn, az0, el0, floorDB)
             %EVALPATTERN  Meshgrid + gain evaluation + dB conversion.
             deg      = pi / 180;
             [az, el] = meshgrid(az0*deg, el0*deg);
