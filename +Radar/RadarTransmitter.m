@@ -74,7 +74,7 @@ classdef RadarTransmitter < handle
                 PRF         (1,1) double {mustBePositive}
                 options.bandwidth  (1,1) double {mustBeNonnegative} = 0
                 options.waveform   (1,:) char   {mustBeMember(options.waveform, ...
-                                            {'rect','lfm','barker','custom'})} = 'rect'
+                                            {'rect','lfm','barker','custom'})} = 'lfm'
                 options.phaseCode  (:,1) double = pi * [0 0 0 0 0 1 1 0 0 1 0 1 0]';
                 options.losses_dB  (1,1) double = 0
             end
@@ -109,7 +109,9 @@ classdef RadarTransmitter < handle
         function v = get.Ep(obj),      v = obj.Pt * obj.tau;          end
         function v = get.Runamb(obj),  v = obj.c0 / (2 * obj.PRF);   end
         function v = get.fdamb(obj),   v = obj.PRF / 2;               end
-        function v = get.timeBandwidthProduct(obj), v = obj.bandwidth * obj.tau; end
+        function v = get.timeBandwidthProduct(obj)
+            v = obj.bandwidth * obj.tau;
+        end
         function v = get.EIRP_dBW(obj)
             v = 10*log10(obj.Pt) - obj.losses_dB;
         end
