@@ -6,7 +6,7 @@ classdef ShapeParameter < handle
         ResCellArea (1,1) double {mustBePositive} = 100;
         SwellDir (1,1) double {mustBeNumeric} = 0; % between beam and swell
         Polarization (1,1) string = "VV"
-        Enabled (1,1) logical = true
+        % Enabled (1,1) logical = true
     end
 
     properties (Dependent, GetAccess=public, SetAccess=private)
@@ -27,7 +27,7 @@ classdef ShapeParameter < handle
                 options.ResCellArea (1,1) double {mustBePositive} = 100;
                 options.SwellDir (1,1) double {mustBeNumeric} = 0; % between beam and swell
                 options.Polarization (1,1) string = "VV"
-                options.Enabled (1,1) logical = true
+                % options.Enabled (1,1) logical = true
             end
 
             % Assign all provided name-value pairs
