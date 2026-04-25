@@ -16,54 +16,59 @@ dbstop if error
 
 % Doug Carlson (doug.o.carlson@gmail.com), 2026-03-18 20:54
 
+%% Deprecated
+
+% fc = 10*GHz;
+% BW = 10*MHz;
+% 
+% Pt = 100*kW;
+% PRF = 1*kHz;
+% 
+% tauP = 20/BW;
+% 
+% tx = Radar.RadarTransmitter(fc, Pt, tauP, PRF, ...
+%     'bandwidth', BW, ...
+%     'waveform', 'barker');
+% 
+% tx;   % calls disp()
+% 
+% rx = Radar.RadarReceiver(4,BW);
+% rx
+% 
+% Fs = 2*BW;
+% Ts = 1/Fs;
+% nFFT = 256;
+% 
+% [s, t]  = tx.generatePulse(Fs);
+% [Pout_dB, f] = tx.spectrum(Fs, nFFT);
+% 
+% figure
+% plot(f/MHz, Pout_dB)
+% 
+% h       = tx.matchedFilter(Fs);
+% rc      = conv(s, h, 'full');    % range-compressed pulse
+% figure
+% plot(abs(rc))
+% 
+% % % Barker-13
+% % b13 = pi * [0 0 0 0 0 1 1 0 0 1 0 1 0]';
+% % txB = Radar.RadarTransmitter(3e9, 10e3, 26e-6, 500, ...
+% %     'waveform', 'barker', 'phaseCode', b13);
+% [chi, tau_ax, fd_ax] = tx.ambiguityFunction(Fs);
+% [FD, TAU] = meshgrid(fd_ax, tau_ax);
+% 
+% %
+% figure
+% surf(fd_ax*tauP, tau_ax/tauP, abs(chi))
+% shading interp
+% colorbar
+% xlabel("\bfNormalized Doppler (F_D\tau)")
+% ylabel("\bfNormalized Delay (t/\tau)")
+
 %%
 
-fc = 10*GHz;
-BW = 10*MHz;
-
-Pt = 100*kW;
-PRF = 1*kHz;
-
-tauP = 20/BW;
-
-tx = Radar.RadarTransmitter(fc, Pt, tauP, PRF, ...
-    'bandwidth', BW, ...
-    'waveform', 'barker');
-
-tx;   % calls disp()
-
-rx = Radar.RadarReceiver(4,BW);
-rx
-
-Fs = 2*BW;
-Ts = 1/Fs;
-nFFT = 256;
-
-[s, t]  = tx.generatePulse(Fs);
-[Pout_dB, f] = tx.spectrum(Fs, nFFT);
-
-figure
-plot(f/MHz, Pout_dB)
-
-h       = tx.matchedFilter(Fs);
-rc      = conv(s, h, 'full');    % range-compressed pulse
-figure
-plot(abs(rc))
-
-% % Barker-13
-% b13 = pi * [0 0 0 0 0 1 1 0 0 1 0 1 0]';
-% txB = Radar.RadarTransmitter(3e9, 10e3, 26e-6, 500, ...
-%     'waveform', 'barker', 'phaseCode', b13);
-[chi, tau_ax, fd_ax] = tx.ambiguityFunction(Fs);
-[FD, TAU] = meshgrid(fd_ax, tau_ax);
-
-%
-figure
-surf(fd_ax*tauP, tau_ax/tauP, abs(chi))
-shading interp
-colorbar
-xlabel("\bfNormalized Doppler (F_D\tau)")
-ylabel("\bfNormalized Delay (t/\tau)")
-
-
+rx  = Radar.RadarReceiver(4, 10e6, fIF=60e6, fadc=150e6, fbb=25e6, nBits=12);
+% build s_rf and h_ref at fan=600e6 and fbb respectively ...
+C   = rx.processChain(s_rf, 600e6, h_ref=h_ref);
+rx.plotChain(C);
 
