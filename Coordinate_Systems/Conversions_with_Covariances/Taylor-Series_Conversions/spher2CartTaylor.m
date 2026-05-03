@@ -1,4 +1,4 @@
-function [zCart,RCart]=spher2CartTaylor(zMeas,R,zRx,M,algorithm)
+function [zCart,RCart,SRCart]=spher2CartTaylor(zMeas,R,zRx,M,algorithm)
 %%SPHER2CARTTAYLOR Approximate the Cartesian moments of a Gaussian
 %                 noise-corrupted measurement in monostatic spherical
 %                 coordinates. This function approaches the conversion
@@ -87,6 +87,7 @@ end
 
 zCart=zeros(3,numMeas);
 RCart=zeros(3,3,numMeas);
+SRCart=zeros(3,3,numMeas);
 
 switch(algorithm)
     case 0%The multiplicative unbiased conversion from [1].
@@ -145,6 +146,7 @@ switch(algorithm)
             RCart(3,2,curMeas)=RCart(2,3,curMeas);
             
             RCart(:,:,curMeas)=MInvCur*RCart(:,:,curMeas)*MInvCur';
+            SRCart(:,:,curMeas) = cholSemiDef(RCart(:,:,curMeas), 'lower');
         end
     case 1%The modified multiplicative unbiased conversion from [2].
         for curMeas=1:numMeas
@@ -191,6 +193,55 @@ switch(algorithm)
             RCart(3,2,curMeas)=RCart(2,3,curMeas);
 
             RCart(:,:,curMeas)=MInvCur*RCart(:,:,curMeas)*MInvCur';
+            SRCart(:,:,curMeas) = cholSemiDef(RCart(:,:,curMeas), 'lower');
+        end
+    case 2%The modified multiplicative biased conversion.
+        error("TODO: incorrect, copied from option  1 above, with lambdabet=lambdaeta=1")
+        for curMeas=1:numMeas
+            r=zMeas(1,curMeas);
+            beta=zMeas(2,curMeas);
+            eta=zMeas(3,curMeas);
+
+            %This ignores any cross terms.
+            sigmaR2=R(1,1,curMeas);
+            sigmaBeta2=R(2,2,curMeas);
+            sigmaEta2=R(3,3,curMeas);
+
+            %Transpose equals inverse of a rotation matrix.
+            MInvCur=M(:,:,curMeas)';
+
+            cosBeta=cos(beta);
+            cos2Beta=cos(2*beta);
+            sinBeta=sin(beta);
+            sin2Beta=sin(2*beta);
+            cosEta=cos(eta);
+            cos2Eta=cos(2*eta);
+            sinEta=sin(eta);
+            sin2Eta=sin(2*eta);
+        
+            %From Equation 12
+            lambdaBeta=1;%exp(-sigmaBeta2/2);
+            lambdaBetaPrime=lambdaBeta^4;
+            lambdaEta=1;%exp(-sigmaEta2/2);
+            lambdaEtaPrime=lambdaEta^4;
+
+            x=lambdaBeta*lambdaEta*r*cosBeta*cosEta;
+            y=lambdaBeta*lambdaEta*r*sinBeta*cosEta;
+            z=lambdaEta*r*sinEta;
+            zCart(:,curMeas)=MInvCur*[x;y;z]+zRx(:,curMeas);
+
+            RCart(1,1,curMeas)=-lambdaBeta^2*lambdaEta^2*r^2*cosBeta^2*cosEta^2+(1/4)*(r^2+sigmaR2)*(1+lambdaBetaPrime*cos2Beta)*(1+lambdaEtaPrime*cos2Eta);
+            RCart(2,2,curMeas)=-lambdaBeta^2*lambdaEta^2*r^2*sinBeta^2*cosEta^2+(1/4)*(r^2+sigmaR2)*(1-lambdaBetaPrime*cos2Beta)*(1+lambdaEtaPrime*cos2Eta);
+            RCart(3,3,curMeas)=-lambdaEta^2*r^2*sinEta^2+(1/2)*(r^2+sigmaR2)*(1-lambdaEtaPrime*cos2Eta);
+            RCart(1,2,curMeas)=-lambdaBeta^2*lambdaEta^2*r^2*sinBeta*cosBeta*cosEta^2+(1/4)*(r^2+sigmaR2)*lambdaBetaPrime*sin2Beta*(1+lambdaEtaPrime*cos2Eta);
+            RCart(2,1,curMeas)=RCart(1,2,curMeas);
+            RCart(1,3,curMeas)=-lambdaBeta*lambdaEta^2*r^2*cosBeta*sinEta*cosEta+(1/2)*(r^2+sigmaR2)*lambdaBeta*lambdaEtaPrime*cosBeta*sin2Eta;
+            RCart(3,1,curMeas)=RCart(1,3,curMeas);
+            RCart(2,3,curMeas)=-lambdaBeta*lambdaEta^2*r^2*sinBeta*sinEta*cosEta+(1/2)*(r^2+sigmaR2)*lambdaBeta*lambdaEtaPrime*sinBeta*sin2Eta;
+            RCart(3,2,curMeas)=RCart(2,3,curMeas);
+
+            RCart(:,:,curMeas)=MInvCur*RCart(:,:,curMeas)*MInvCur';
+            SRCart(:,:,curMeas) = cholSemiDef(RCart(:,:,curMeas), 'lower');
         end
     otherwise
         error('Unknown algorithm specified')
