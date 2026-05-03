@@ -1,4 +1,4 @@
-function [zCart,RCart]=spher2CartCubature(spherPoint,SR,systemType,useHalfRange,zTx,zRx,M,xi,w)
+function [zCart,RCart, SRCart]=spher2CartCubature(spherPoint,SR,systemType,useHalfRange,zTx,zRx,M,xi,w)
 %%SPHER2CARTCUBATURE Use cubature integration to approximate the moments
 %                    of a noise-corrupted spherical location converted into
 %                    3D Cartesian coordinates. An option allows for
@@ -167,8 +167,10 @@ function [zCart,RCart]=spher2CartCubature(spherPoint,SR,systemType,useHalfRange,
     %Allocate space for the return variables.
     zCart=zeros(numDim,numPoints);
     RCart=zeros(numDim,numDim,numPoints);
+    SRCart=zeros(numDim,numDim,numPoints);
     for curPoint=1:numPoints
         [zCart(:,curPoint),RCart(:,:,curPoint)]=calcCubPointMoments(spherPoint(:,curPoint),SR(:,:,curPoint),h,xi,w);
+        SRCart(:,:,curPoint) = cholSemiDef(RCart(:,:,curPoint), 'lower');
     end
 end
 
