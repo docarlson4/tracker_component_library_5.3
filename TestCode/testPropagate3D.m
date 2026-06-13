@@ -3,7 +3,7 @@ clear
 close all
 
 cd(fileparts(which(mfilename)))
-
+addpath C:/Users/dougo/OneDrive/Documents/MATLAB/
 MyConstants
 
 dbstop if error
