@@ -28,14 +28,14 @@ aDrift = @(x,t) aCircTurn(x);
 %% Set A/C kinematics
 
 %   1. initial position (GEO/ECEF)
-hp = 2.5*km;
+hp = 15*km;
 pos_plat_geo0 = [14.90*deg; -75.0*deg; hp];
 pos_plat_ecf0 = ellips2Cart(pos_plat_geo0);
 
 %   2. initial velocity (ENU)
-va = 100*mph;
-pha = 90*deg; % due North
-vel_plat_enu0 = va * [cos(pha); sin(pha); 0];
+va = 300*mph;
+pha = 0*deg;
+vel_plat_enu0 = va * [sin(pha); cos(pha); 0];
 
 %   3. propagate platform
 % The initial target state with GLOBAL position and LOCAL velocity
@@ -60,7 +60,7 @@ pos_tgt_ecf0 = ellips2Cart(pos_tgt_geo0);
 %   2. initial velocity (ENU)
 vt = 30*knots;
 pha = 45*deg;
-vel_tgt_enu0 = vt * [cos(pha); sin(pha); 0];
+vel_tgt_enu0 = vt * [sin(pha); cos(pha); 0];
 
 %   3. propagate target
 % The initial target state with GLOBAL position and LOCAL velocity
@@ -109,32 +109,21 @@ va = z(3,:); % generally unknown for ULAs
 za = [rs;ua];
 
 %% Spectrum
-fc = 3*GHz;
-lamc = c0/fc;
-kc = 2*pi/lamc;
+f0 = 3*GHz;
+lam = c0/f0;
+k0 = 2*pi/lam;
 
 %% Antenna
 Ne = 8; % no. of elements
-d = lamc/2;
+d = lam/2;
 
 %% Impose Measurement Noise
-% radar_obj = Radar.RadarReceiver( ...
-%     "CenterFreq", f0, ...
-%     "FrameTime", Ts);
-% sig_rs = radar_obj.RangeUnc;
-% sig_ua = sqrt(3)/(k0*d*sqrt(Ne*(Ne-1)*(2*Ne-1)) * radar_obj.SNR);
-% SR = diag([sig_rs, sig_ua]);
-
-FN = 4; % dB
-BW = 100*MHz;
-rcvr_obj = Radar.RadarReceiver(FN, BW);
-
-Pt = 100; % Watts
-tau = 1*us;
-PRF = 1*kHz;
-xmtr_obj = Radar.RadarTransmitter(fc, Pt, tau, PRF);
-
-rcvr_obj.rangeSNR(xmtr_obj,30,30,10,10*km)
+radar_obj = Tracker.RadarReceiver( ...
+    "CenterFreq", f0, ...
+    "FrameTime", Ts);
+sig_rs = radar_obj.RangeUnc;
+sig_ua = sqrt(3)/(k0*d*sqrt(Ne*(Ne-1)*(2*Ne-1)) * radar_obj.SNR);
+SR = diag([sig_rs, sig_ua]);
 
 %% Reconstruct Target Geolocation Based on Terrain Constraint
 
