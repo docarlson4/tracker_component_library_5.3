@@ -3,13 +3,15 @@ classdef Trajectory < handle & matlab.mixin.Heterogeneous
     %East-North-Up (ENU) coordinate system.
 
     properties
-        T           % INPUT: revisit time
-        v0          % INPUT: constant speed along legs and turns
-        pos0        % INPUT: inital position
-        leg_dirs    % INPUT: leg directions of compass rose
-        leg_times   % INPUT: time spent on each leg
-        turn_accs   % INPUT: turn acceleration, in g's, between legs
+        T (1,1) double          % INPUT: revisit time
+        v0 (1,1) double         % INPUT: constant speed along legs and turns
+        pos0 (3,1) double        % INPUT: inital position
+        leg_dirs (1,:) string   % INPUT: leg directions of compass rose
+        leg_times (1,:) double   % INPUT: time spent on each leg
+        turn_accs (1,:) double   % INPUT: turn acceleration, in g's, between legs
+    end
 
+    properties(SetAccess = private)
         Ns          % OUTPUT: number of discrete states
         s           % OUTPUT: s(:,1) = [pos; vel; ang speed], (7 X Ns)
         mode        % OUTPUT: {+1,0,-1} == {PORT, LINEAR, STARBOARD} motion
@@ -25,28 +27,20 @@ classdef Trajectory < handle & matlab.mixin.Heterogeneous
     end
 
     methods
-        function obj = Trajectory(varargin)
-            %TRAJECTORY Construct an instance of this class
-            %   Detailed explanation goes here
-            p = inputParser;
-
-            addParameter(p,'revisit_time',1,@isnumeric);
-            addParameter(p,'speed',20,@isnumeric);
-            addParameter(p,'initial_position',[0;0;0],@isnumeric);
-            check_legs = @(x) all(ismember(x,obj.compass_dir));
-            addParameter(p,'leg_directions',["N", "NE"],check_legs);
-            addParameter(p,'leg_times',[60,45],@isnumeric);
-            addParameter(p,'turn_accelerations',0.1,@isnumeric);
-
-            parse(p,varargin{:})
-
-            obj.T = p.Results.revisit_time;
-            obj.v0 = p.Results.speed;
-            obj.pos0 = p.Results.initial_position;
-            obj.leg_dirs = p.Results.leg_directions;
-            obj.leg_times = p.Results.leg_times;
-            obj.turn_accs = p.Results.turn_accelerations * 9.81;
-
+        function obj = Trajectory(opt)
+            arguments
+                opt.T (1,1) double = 1% INPUT: revisit time
+                opt.v0 (1,1) double = 20        % INPUT: constant speed along legs and turns
+                opt.pos0 (3,1) double = [0;0;0]       % INPUT: inital position
+                opt.leg_dirs (1,:) string = ["N","S","N"]  % INPUT: leg directions of compass rose
+                opt.leg_times (1,:) double = [50,50,50]  % INPUT: time spent on each leg
+                opt.turn_accs (1,:) double = [1,-1]  % INPUT: turn acceleration, in g's, between legs
+            end         
+            fld_names = fieldnames(opt);
+            num_flds = numel(fld_names);
+            for k = 1:num_flds
+                obj.(fld_names{k}) = opt.(fld_names{k});
+            end
             validate_entries(obj);
 
             obj = gen_traj(obj);
